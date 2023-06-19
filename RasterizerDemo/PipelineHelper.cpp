@@ -73,7 +73,7 @@ bool CreateInputLayout(ID3D11Device* device, ID3D11InputLayout*& inputLayout, co
 	return !FAILED(hr);
 }
 
-bool CreateVertexBuffer(ID3D11Device* device, ID3D11Buffer*& vertexBuffer, Parser*& baseModel)
+bool CreateVertexBuffer(ID3D11Device* device, ID3D11Buffer*& vertexBuffer, Parser*& baseModel) //Remove this and add to Parser as Object handler
 {
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.ByteWidth = baseModel->sizeOfVertexBuffer();
@@ -106,7 +106,7 @@ bool CreateConstantMatrixBuffer(ID3D11Device* device, ID3D11Buffer*& matrixConst
 	return !FAILED(hr);
 }
 
-bool CreateBaseTexture(ID3D11Device* device, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, Parser*& baseModel)
+bool CreateBaseTexture(ID3D11Device* device, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, Parser*& baseModel) //Remove this and add to Parser as Object handler
 {
 	if (FAILED(device->CreateTexture2D(&baseModel->mtlParser->description, &baseModel->GiveData()[0], &texture)))
 	{
@@ -147,7 +147,7 @@ bool CreateCameraPosConstantBuffer(ID3D11Device* device, ID3D11Buffer*& cameraPo
 {
 	CameraPos cameraPos =
 	{
-		XMFLOAT3(0.0f, 0.0f, -2.0f) //Camera position
+		XMFLOAT3(0.0f, 0.0f, 0.0f) //Camera position will get updated each frame.
 	};
 
 	//Same thing as light constant buffer.

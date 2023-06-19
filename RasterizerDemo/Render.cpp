@@ -12,9 +12,10 @@ Render::~Render()
 	dsTexture->Release();
 	dsView->Release();
 	inputLayout->Release();
+	rtv->Release();
 }
 
-void Render::StandardRender(ID3D11RenderTargetView* rtv, ID3D11ShaderResourceView* textureSRV, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11Buffer* vertexBuffer, ID3D11Buffer* matrixConstantBuffer, Parser* baseModel, ID3D11SamplerState* sampler)
+void Render::StandardRender(ID3D11ShaderResourceView* textureSRV, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11Buffer* vertexBuffer, ID3D11Buffer* matrixConstantBuffer, Parser* baseModel, ID3D11SamplerState* sampler, ID3D11ShaderResourceView* lightSRV, ID3D11Buffer* numberOfLightsBuffer, ID3D11Buffer* cameraPosConstantBuffer)
 {
 	float clearColour[4] = { 0, 0, 0, 0 };
 	immediateContext->ClearRenderTargetView(rtv, clearColour);
@@ -29,7 +30,11 @@ void Render::StandardRender(ID3D11RenderTargetView* rtv, ID3D11ShaderResourceVie
 	immediateContext->VSSetConstantBuffers(0, 1, &matrixConstantBuffer);
 	immediateContext->RSSetViewports(1, &viewport);
 	immediateContext->PSSetShader(pShader, nullptr, 0);
+	immediateContext->PSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+	immediateContext->PSSetConstantBuffers(1, 1, &numberOfLightsBuffer);
+	immediateContext->PSSetConstantBuffers(2, 1, &cameraPosConstantBuffer);
 	immediateContext->PSSetShaderResources(0, 1, &textureSRV);
+	immediateContext->PSSetShaderResources(1, 1, &lightSRV);
 	immediateContext->PSSetSamplers(0, 1, &sampler);
 	immediateContext->OMSetRenderTargets(1, &rtv, dsView);
 

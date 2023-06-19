@@ -105,12 +105,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	Render* renderer = new Render();
 
 	//Standard Rendering
-	ID3D11RenderTargetView* rtv;
 	ID3D11VertexShader* vShader;
 	ID3D11PixelShader* pShader;
-	ID3D11Buffer* vertexBuffer;
 
 	//Base model and sampler
+	ID3D11Buffer* vertexBuffer;
 	Parser* baseModel = new Parser("Models/Room.obj");
 	ID3D11Texture2D* texture;
 	ID3D11ShaderResourceView* textureSRV;
@@ -125,15 +124,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	};
 	ID3D11Buffer* matrixConstantBuffer;
 
-	//Initialize all the buffers, shaders, render targets etc...
-	if (!SetupD3D11(WIDTH, HEIGHT, window, renderer->device, renderer->immediateContext, renderer->swapChain, rtv, renderer->dsTexture, renderer->dsView, renderer->viewport))
+	//Set up the environment
+	if (!SetupD3D11(WIDTH, HEIGHT, window, renderer->device, renderer->immediateContext, renderer->swapChain, renderer->rtv, renderer->dsTexture, renderer->dsView, renderer->viewport))
 	{
 		std::cerr << "Failed to setup d3d11!" << std::endl;
 		return -1;
 	}
 
+	//Create the lights
+	LightHandler* lights = new LightHandler();
+	lights->AddLight(renderer->device, 0);
+	lights->AddLight(renderer->device, 1, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, -1.0f));
+
+	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
+	//Initialize the pipeline
 	if (!SetupPipeline(renderer->device, vertexBuffer, vShader, pShader, renderer->inputLayout, matrixConstantBuffer, baseModel, texture, textureSRV, sampler, cameraPosConstantBuffer))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
@@ -165,7 +171,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		UpdateCamConstBuffer(renderer->immediateContext, cameraPosConstantBuffer, &camPos);
 
 		//Rotate the scene around the Y axis (based on the time passed since the start of the program)
-		//worldMatrix *= XMMatrixRotationY(0.1f * dt);
+		//worldMatrix *= XMMatrixRotationY(0.0002f * dt);
 
 		//Update Matrices
 		viewAndProjectionMatrix = camera.GetViewMatrix() * camera.GetProjectionMatrix();
@@ -194,7 +200,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		else
 		{
 			//renderer->StandardRender(vertexBuffer, indexBufferTest, currentLightConstBuff, matrixConstantBuffer, cameraPosConstantBuffer);
-			renderer->StandardRender(rtv, textureSRV, vShader, pShader, vertexBuffer, matrixConstantBuffer, baseModel, sampler);
+			renderer->StandardRender(textureSRV, vShader, pShader, vertexBuffer, matrixConstantBuffer, baseModel, sampler, lights->lightSRV, lights->numberOfLightsBuffer, cameraPosConstantBuffer);
 		}
 		ImGuiSelectRenderMethod(useCubeMap, useLOD, useCulling, useParticle);
 
@@ -207,10 +213,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 
+	//Release all COM objects
 	vertexBuffer->Release();
 	pShader->Release();
 	vShader->Release();
-	rtv->Release();
 	texture->Release();
 	textureSRV->Release();
 	sampler->Release();
@@ -218,6 +224,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	cameraPosConstantBuffer->Release();
 	delete renderer;
 	delete baseModel;
+	delete lights;
 
 	return 0;
 }
