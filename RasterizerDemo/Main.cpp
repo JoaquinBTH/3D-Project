@@ -29,47 +29,47 @@ void UpdateConstBuffer(ID3D11DeviceContext* immediateContext, ID3D11Buffer*& upd
 	immediateContext->Unmap(updateConstantBuffer, 0);
 }
 
-void UpdateCamera(Camera& camera, float dt)
+void UpdateCamera(Camera*& camera, float dt)
 {
 	if (GetAsyncKeyState('W'))
 	{
-		camera.AdjustPosition(camera.GetForwardVector() * 0.005f * dt);
+		camera->AdjustPosition(camera->GetForwardVector() * 0.005f * dt);
 	}
 	if (GetAsyncKeyState('S'))
 	{
-		camera.AdjustPosition(camera.GetBackwardVector() * 0.005f * dt);
+		camera->AdjustPosition(camera->GetBackwardVector() * 0.005f * dt);
 	}
 	if (GetAsyncKeyState('A'))
 	{
-		camera.AdjustPosition(camera.GetLeftVector() * 0.005f * dt);
+		camera->AdjustPosition(camera->GetLeftVector() * 0.005f * dt);
 	}
 	if (GetAsyncKeyState('D'))
 	{
-		camera.AdjustPosition(camera.GetRightVector() * 0.005f * dt);
+		camera->AdjustPosition(camera->GetRightVector() * 0.005f * dt);
 	}
 	if (GetAsyncKeyState(VK_SPACE))
 	{
-		camera.AdjustPosition(0, 0.005f * dt, 0);
+		camera->AdjustPosition(0, 0.005f * dt, 0);
 	}
 	if (GetAsyncKeyState(VK_SHIFT))
 	{
-		camera.AdjustPosition(0, -0.005f * dt, 0);
+		camera->AdjustPosition(0, -0.005f * dt, 0);
 	}
 	if (GetAsyncKeyState(VK_UP))
 	{
-		camera.AdjustRotation(-0.002f * dt, 0, 0);
+		camera->AdjustRotation(-0.002f * dt, 0, 0);
 	}
 	if (GetAsyncKeyState(VK_DOWN))
 	{
-		camera.AdjustRotation(0.002f * dt, 0, 0);
+		camera->AdjustRotation(0.002f * dt, 0, 0);
 	}
 	if (GetAsyncKeyState(VK_RIGHT))
 	{
-		camera.AdjustRotation(0, 0.002f * dt, 0);
+		camera->AdjustRotation(0, 0.002f * dt, 0);
 	}
 	if (GetAsyncKeyState(VK_LEFT))
 	{
-		camera.AdjustRotation(0, -0.002f * dt, 0);
+		camera->AdjustRotation(0, -0.002f * dt, 0);
 	}
 }
 
@@ -91,16 +91,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//Timer for delta value.
 	Timer timer;
 
-	//Camera
-	Camera camera;
-	camera.SetPosition(0.0f, 0.0f, -2.0f);
-	camera.SetProjectionValues(90.0f, static_cast<float>(WIDTH) / static_cast<float>(HEIGHT), 0.1f, 1000.0f);
-	CameraPos camPos =
-	{
-		camera.GetPositionFloat3()
-	};
-	ID3D11Buffer* cameraPosConstantBuffer;
-
 	//Create Renderer.
 	Render* renderer = new Render();
 
@@ -115,21 +105,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ID3D11ShaderResourceView* textureSRV;
 	ID3D11SamplerState* sampler;
 
-	//Create world/view+proj matrices
-	XMMATRIX worldMatrix = XMMatrixIdentity();
-	XMMATRIX viewAndProjectionMatrix = camera.GetViewMatrix() * camera.GetProjectionMatrix();
-	MatrixConstantBuffer matrices =
-	{
-		worldMatrix, viewAndProjectionMatrix
-	};
-	ID3D11Buffer* matrixConstantBuffer;
-
 	//Set up the environment
 	if (!SetupD3D11(WIDTH, HEIGHT, window, renderer->device, renderer->immediateContext, renderer->swapChain, renderer->rtv, renderer->dsTexture, renderer->dsView, renderer->viewport))
 	{
 		std::cerr << "Failed to setup d3d11!" << std::endl;
 		return -1;
 	}
+
+	//Create the camera
+	Camera* camera = new Camera(renderer->device, static_cast<float>(WIDTH) / static_cast<float>(HEIGHT));
+
+	//Create world/view+proj matrices
+	XMMATRIX worldMatrix = XMMatrixIdentity();
+	XMMATRIX viewAndProjectionMatrix = camera->GetViewMatrix() * camera->GetProjectionMatrix();
+	MatrixConstantBuffer matrices =
+	{
+		worldMatrix, viewAndProjectionMatrix
+	};
+	ID3D11Buffer* matrixConstantBuffer;
 
 	//Create the lights
 	LightHandler* lights = new LightHandler();
@@ -140,7 +133,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
 	//Initialize the pipeline
-	if (!SetupPipeline(renderer->device, vertexBuffer, vShader, pShader, renderer->inputLayout, matrixConstantBuffer, baseModel, texture, textureSRV, sampler, cameraPosConstantBuffer))
+	if (!SetupPipeline(renderer->device, vertexBuffer, vShader, pShader, renderer->inputLayout, matrixConstantBuffer, baseModel, texture, textureSRV, sampler))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
 		return -1;
@@ -167,14 +160,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		//Update Camera
 		UpdateCamera(camera, dt);
-		camPos.cameraPos = camera.GetPositionFloat3();
-		UpdateCamConstBuffer(renderer->immediateContext, cameraPosConstantBuffer, &camPos);
+		UpdateCamConstBuffer(renderer->immediateContext, camera->cameraPosConstantBuffer, &camera->camPos);
 
 		//Rotate the scene around the Y axis (based on the time passed since the start of the program)
 		//worldMatrix *= XMMatrixRotationY(0.0002f * dt);
 
 		//Update Matrices
-		viewAndProjectionMatrix = camera.GetViewMatrix() * camera.GetProjectionMatrix();
+		viewAndProjectionMatrix = camera->GetViewMatrix() * camera->GetProjectionMatrix();
 		XMStoreFloat4x4(&matrices.viewAndProjectionMatrix, viewAndProjectionMatrix);
 		XMStoreFloat4x4(&matrices.worldMatrix, worldMatrix);
 		UpdateConstBuffer(renderer->immediateContext, matrixConstantBuffer, &matrices);
@@ -200,7 +192,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		else
 		{
 			//renderer->StandardRender(vertexBuffer, indexBufferTest, currentLightConstBuff, matrixConstantBuffer, cameraPosConstantBuffer);
-			renderer->StandardRender(textureSRV, vShader, pShader, vertexBuffer, matrixConstantBuffer, baseModel, sampler, lights->lightSRV, lights->numberOfLightsBuffer, cameraPosConstantBuffer);
+			renderer->StandardRender(textureSRV, vShader, pShader, vertexBuffer, matrixConstantBuffer, baseModel, sampler, lights->lightSRV, lights->numberOfLightsBuffer, camera->cameraPosConstantBuffer);
 		}
 		ImGuiSelectRenderMethod(useCubeMap, useLOD, useCulling, useParticle);
 
@@ -221,10 +213,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	textureSRV->Release();
 	sampler->Release();
 	matrixConstantBuffer->Release();
-	cameraPosConstantBuffer->Release();
 	delete renderer;
 	delete baseModel;
 	delete lights;
+	delete camera;
 
 	return 0;
 }

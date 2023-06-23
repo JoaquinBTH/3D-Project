@@ -1,12 +1,38 @@
 #include "Camera.h"
 
-Camera::Camera()
+Camera::Camera(ID3D11Device* device, float aspectRatio, XMFLOAT3 position, XMFLOAT3 rotation, float fovDegrees, float nearZ, float farZ)
 {
-	this->pos = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	this->posVector = XMLoadFloat3(&this->pos);
-	this->rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	this->rotVector = XMLoadFloat3(&this->rot);
+	this->SetPosition(position);
+	this->SetRotation(rotation);
+	this->SetProjectionValues(fovDegrees, aspectRatio, nearZ, farZ);
+
+	this->camPos.cameraPos = this->pos;
+
+	//Buffer description
+	D3D11_BUFFER_DESC cameraPosBufferDesc{};
+	cameraPosBufferDesc.ByteWidth = sizeof(CameraPos);
+	cameraPosBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	cameraPosBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cameraPosBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cameraPosBufferDesc.MiscFlags = 0;
+	cameraPosBufferDesc.StructureByteStride = 0;
+
+	//Initial data in the buffer
+	D3D11_SUBRESOURCE_DATA cameraPosData;
+	cameraPosData.pSysMem = &camPos;
+	cameraPosData.SysMemPitch = 0;
+	cameraPosData.SysMemSlicePitch = 0;
+
+	//Create the buffer
+	device->CreateBuffer(&cameraPosBufferDesc, &cameraPosData, &cameraPosConstantBuffer);
+
+	//Update the view matrix
 	this->UpdateViewMatrix();
+}
+
+Camera::~Camera()
+{
+	cameraPosConstantBuffer->Release();
 }
 
 void Camera::SetProjectionValues(float fovDegrees, float aspectRatio, float nearZ, float farZ)
@@ -35,9 +61,9 @@ const XMFLOAT3& Camera::GetRotationFloat3() const
 	return this->rot;
 }
 
-void Camera::SetPosition(float x, float y, float z)
+void Camera::SetPosition(XMFLOAT3 position)
 {
-	this->pos = XMFLOAT3(x, y, z);
+	this->pos = position;
 	this->posVector = XMLoadFloat3(&this->pos);
 	this->UpdateViewMatrix();
 }
@@ -58,9 +84,9 @@ void Camera::AdjustPosition(float x, float y, float z)
 	this->UpdateViewMatrix();
 }
 
-void Camera::SetRotation(float x, float y, float z)
+void Camera::SetRotation(XMFLOAT3 rotation)
 {
-	this->rot = XMFLOAT3(x, y, z);
+	this->rot = rotation;
 	this->rotVector = XMLoadFloat3(&this->rot);
 	this->UpdateViewMatrix();
 }
@@ -108,7 +134,7 @@ void Camera::SetLookAtPos(XMFLOAT3 lookAtPos)
 	if (lookAtPos.z > 0)
 		yaw += XM_PI;
 
-	this->SetRotation(pitch, yaw, 0.0f);
+	this->SetRotation(XMFLOAT3(pitch, yaw, 0.0f));
 }
 
 const XMVECTOR& Camera::GetForwardVector()
@@ -138,6 +164,9 @@ const XMVECTOR& Camera::GetUpVector()
 
 void Camera::UpdateViewMatrix() //Update view matrix and move vectors
 {
+	//Update camPos
+	camPos.cameraPos = this->pos;
+
 	XMMATRIX camRotationMatrix = XMMatrixRotationRollPitchYaw(this->rot.x, this->rot.y, this->rot.z);
 	XMVECTOR camTarget = XMVector3TransformCoord(this->DEFAULT_FORWARD_VECTOR, camRotationMatrix);
 	camTarget += this->posVector;

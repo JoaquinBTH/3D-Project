@@ -143,36 +143,8 @@ bool CreateSamplerState(ID3D11Device* device, ID3D11SamplerState*& sampler)
 	return !FAILED(hr);
 }
 
-bool CreateCameraPosConstantBuffer(ID3D11Device* device, ID3D11Buffer*& cameraPosConstantBuffer)
-{
-	CameraPos cameraPos =
-	{
-		XMFLOAT3(0.0f, 0.0f, 0.0f) //Camera position will get updated each frame.
-	};
-
-	//Same thing as light constant buffer.
-	D3D11_BUFFER_DESC cameraPosBufferDesc{};
-	ZeroMemory(&cameraPosBufferDesc, sizeof(cameraPosBufferDesc));
-	cameraPosBufferDesc.ByteWidth = sizeof(CameraPos);
-	cameraPosBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	cameraPosBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cameraPosBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	cameraPosBufferDesc.MiscFlags = 0;
-	cameraPosBufferDesc.StructureByteStride = 0;
-
-	//Same thing as light constant buffer.
-	D3D11_SUBRESOURCE_DATA cameraPosData;
-	cameraPosData.pSysMem = &cameraPos;
-	cameraPosData.SysMemPitch = 0;
-	cameraPosData.SysMemSlicePitch = 0;
-
-	//Same thing as light constant buffer.
-	HRESULT hr = device->CreateBuffer(&cameraPosBufferDesc, &cameraPosData, &cameraPosConstantBuffer);
-	return !FAILED(hr);
-}
-
 bool SetupPipeline(ID3D11Device* device, ID3D11Buffer*& vertexBuffer, ID3D11VertexShader*& vShader,
-	ID3D11PixelShader*& pShader, ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, Parser*& baseModel, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, ID3D11SamplerState*& sampler, ID3D11Buffer*& cameraPosConstantBuffer)
+	ID3D11PixelShader*& pShader, ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, Parser*& baseModel, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, ID3D11SamplerState*& sampler)
 {
 	std::string vShaderByteCode;
 	if (!LoadShaders(device, vShader, pShader, vShaderByteCode))
@@ -209,12 +181,6 @@ bool SetupPipeline(ID3D11Device* device, ID3D11Buffer*& vertexBuffer, ID3D11Vert
 	if (!CreateSamplerState(device, sampler))
 	{
 		std::cerr << "Error creating sampler state!" << std::endl;
-		return false;
-	}
-
-	if (!CreateCameraPosConstantBuffer(device, cameraPosConstantBuffer))
-	{
-		std::cerr << "Error creating camera position properties" << std::endl;
 		return false;
 	}
 

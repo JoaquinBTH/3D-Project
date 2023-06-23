@@ -72,33 +72,6 @@ void ImGuiExample(ID3D11ShaderResourceView* secretImageSRV, int secretImageWidth
 	ImGui::End();
 }
 
-void ImGuiModifying(CameraPos* toModify, ID3D11DeviceContext* context, ID3D11Buffer* buffer)
-{
-	float cameraPosValues[3];
-	cameraPosValues[0] = toModify->cameraPos.x;
-	cameraPosValues[1] = toModify->cameraPos.y;
-	cameraPosValues[2] = toModify->cameraPos.z;
-
-
-	bool begun = ImGui::Begin("Modifiers");
-	if (begun)
-	{
-		ImGui::ColorEdit3("Colour modifier", cameraPosValues);
-		ImGui::SliderFloat("X pos modifier", &cameraPosValues[0], -0.5f, 0.5f);
-		ImGui::InputFloat("Y pos modifier", &cameraPosValues[1], 0.1f);
-	}
-	ImGui::End();
-
-	toModify->cameraPos.x = cameraPosValues[0];
-	toModify->cameraPos.y = cameraPosValues[1];
-	toModify->cameraPos.z = cameraPosValues[2];
-
-	D3D11_MAPPED_SUBRESOURCE  mapped;
-	context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-	memcpy(mapped.pData, &toModify, sizeof(Vertex));
-	context->Unmap(buffer, 0);
-}
-
 void ImGuiSelectRenderMethod(bool& useCubeMap, bool& useLOD, bool& useCulling, bool& useParticle)
 {
 	bool begun = ImGui::Begin("Render Method");

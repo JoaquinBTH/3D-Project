@@ -23,16 +23,5 @@ struct MatrixConstantBuffer
 	}
 };
 
-struct CameraPos
-{
-	DirectX::XMFLOAT3 cameraPos;
-	float filler = 0.0f;
-
-	CameraPos(const DirectX::XMFLOAT3& camPos)
-	{
-		cameraPos = camPos;
-	}
-};
-
 bool SetupPipeline(ID3D11Device * device, ID3D11Buffer *& vertexBuffer, ID3D11VertexShader *& vShader, ID3D11PixelShader *& pShader, ID3D11InputLayout *& inputLayout,
-					ID3D11Buffer*& matrixConstantBuffer, Parser*& baseModel, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, ID3D11SamplerState*& sampler, ID3D11Buffer*& cameraPosConstantBuffer);
+					ID3D11Buffer*& matrixConstantBuffer, Parser*& baseModel, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, ID3D11SamplerState*& sampler);
