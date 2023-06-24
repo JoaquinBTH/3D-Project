@@ -29,20 +29,6 @@ struct Vertex
 	}
 };
 
-struct Group
-{
-	std::string name;
-	std::string smoothGroupName;
-	int submeshIndex;
-	std::vector<Vertex> vertices;
-};
-
-struct Object
-{
-	std::string name;
-	std::vector<Group> groups;
-};
-
 struct Material
 {
 	std::string name;
@@ -57,7 +43,18 @@ struct Submesh
 {
 	int startIndex;
 	int indexCount;
-	Material material;
+
+	//Submesh(int startIndex, int indexCount)
+	//{
+	//	this->startIndex = startIndex;
+	//	this->indexCount = indexCount;
+	//}
+};
+
+struct Object
+{
+	std::string name;
+	Submesh submesh;
 };
 
 class ObjectHandler
@@ -67,15 +64,13 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Object> objects;
-	std::vector<Submesh> submeshes;
-
-	Submesh& CreateSubmesh(int startIndex, int indexCount, const Material& material);
-	const Submesh& GetSubmesh(int submeshIndex) const;
 
 	bool LoadMaterial(ID3D11Device* device, const std::string fileName);
 	bool LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV);
 
 	void CreateBuffers(ID3D11Device* device);
+
+	void ClearPreviousObject();
 public:
 	ObjectHandler();
 	~ObjectHandler();
@@ -92,5 +87,6 @@ public:
 	bool LoadObject(ID3D11Device* device, std::string fileName);
 
 	int getIndexCount() const;
+	Submesh getSubmesh(int object) const;
 };
 

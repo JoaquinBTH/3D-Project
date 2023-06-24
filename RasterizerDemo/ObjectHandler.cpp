@@ -116,22 +116,6 @@ bool ObjectHandler::LoadMaterial(ID3D11Device* device, std::string fileName)
     return true;
 }
 
-Submesh& ObjectHandler::CreateSubmesh(int startIndex, int indexCount, const Material& material)
-{
-    Submesh submesh;
-    submesh.startIndex = startIndex;
-    submesh.indexCount = indexCount;
-    submesh.material = material;
-    submeshes.push_back(submesh);
-
-    return submeshes.back();
-}
-
-const Submesh& ObjectHandler::GetSubmesh(int submeshIndex) const
-{
-    return submeshes[submeshIndex];
-}
-
 void ObjectHandler::CreateBuffers(ID3D11Device* device)
 {
     //Create vertex buffer
@@ -230,49 +214,67 @@ bool ObjectHandler::LoadTexture(ID3D11Device* device, const std::vector<std::str
     return true;
 }
 
+void ObjectHandler::ClearPreviousObject()
+{
+    if (vertexBuffer != nullptr)
+    {
+        this->vertexBuffer->Release();
+    }
+
+    if (indexBuffer != nullptr)
+    {
+        this->indexBuffer->Release();
+    }
+
+    if (mapKdTextureArray != nullptr)
+    {
+        this->mapKdTextureArray->Release();
+    }
+
+    if (mapKaTextureArray != nullptr)
+    {
+        this->mapKaTextureArray->Release();
+    }
+
+    if (mapKsTextureArray != nullptr)
+    {
+        this->mapKsTextureArray->Release();
+    }
+
+    if (mapKdSRV != nullptr)
+    {
+        this->mapKdSRV->Release();
+    }
+
+    if (mapKaSRV != nullptr)
+    {
+        this->mapKaSRV->Release();
+    }
+
+    if (mapKsSRV != nullptr)
+    {
+        this->mapKsSRV->Release();
+    }
+
+    this->materials.clear();
+    this->vertices.clear();
+    this->indices.clear();
+    this->objects.clear();
+}
+
 ObjectHandler::ObjectHandler()
 {
 }
 
 ObjectHandler::~ObjectHandler()
 {
-    this->vertexBuffer->Release();
-    this->indexBuffer->Release();
-    this->mapKdTextureArray->Release();
-    this->mapKaTextureArray->Release();
-    this->mapKsTextureArray->Release();
-    this->mapKdSRV->Release();
-    this->mapKaSRV->Release();
-    this->mapKsSRV->Release();
-    this->materials.clear();
-    this->vertices.clear();
-    this->indices.clear();
-    for (int i = 0; i < this->objects.size(); i++)
-    {
-        for (int j = 0; j < this->objects[i].groups.size(); j++)
-        {
-            this->objects[i].groups[j].vertices.clear();
-        }
-        this->objects[i].groups.clear();
-    }
-    this->objects.clear();
+    this->ClearPreviousObject();
 }
 
 bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
 {
     //Clear previous object
-    this->materials.clear();
-    this->vertices.clear();
-    this->indices.clear();
-    for (int i = 0; i < this->objects.size(); i++)
-    {
-        for (int j = 0; j < this->objects[i].groups.size(); j++)
-        {
-            this->objects[i].groups[j].vertices.clear();
-        }
-        this->objects[i].groups.clear();
-    }
-    this->objects.clear();
+    this->ClearPreviousObject();
 
     //Open the new file
     std::ifstream file(fileName);
@@ -283,9 +285,7 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
 
     //Create the necessary variables
     std::string line;
-    std::string currentGroupName = "";
     std::string currentObjectName = "";
-    std::string currentSmoothGroupName = "";
     std::string mtlFileName = "";
     int currentMaterial = 0;
     std::vector<XMFLOAT3> positions;
@@ -303,9 +303,8 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
 
         if (prefix == "o")
         {
-            //Change currentObjectName and Reset currentGroupName
+            //Change currentObjectName
             ss >> currentObjectName;
-            currentGroupName = "";
         }
         else if (prefix == "v")
         {
@@ -327,11 +326,6 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
             XMFLOAT3 normal;
             ss >> normal.x >> normal.y >> normal.z;
             normals.push_back(normal);
-        }
-        else if (prefix == "g")
-        {
-            //Change currentGroupName
-            ss >> currentGroupName;
         }
         else if (prefix == "usemtl")
         {
@@ -361,11 +355,6 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 };
                 materials.push_back(mat);
             }
-        }
-        else if (prefix == "s")
-        {
-            //Change currentSmoothingGroupName
-            ss >> currentSmoothGroupName;
         }
         else if (prefix == "f")
         {
@@ -414,6 +403,9 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 }
             }
 
+            //Submesh indexCount
+            int indexCount = 0;
+
             //Add the tempIndices to the real list of vertex indices (Based on the amount of new indices)
             if (tempIndices.size() == 3)
             {
@@ -421,6 +413,8 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 indices.push_back(tempIndices[0]);
                 indices.push_back(tempIndices[1]);
                 indices.push_back(tempIndices[2]);
+
+                indexCount = 3;
             }
             else if (tempIndices.size() == 4)
             {
@@ -432,6 +426,8 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 indices.push_back(tempIndices[2]);
                 indices.push_back(tempIndices[3]);
                 indices.push_back(tempIndices[0]);
+
+                indexCount = 6;
             }
             else if (tempIndices.size() == 5)
             {
@@ -447,6 +443,8 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 indices.push_back(tempIndices[0]);
                 indices.push_back(tempIndices[3]);
                 indices.push_back(tempIndices[4]);
+
+                indexCount = 9;
             }
             else if (tempIndices.size() == 6)
             {
@@ -466,6 +464,8 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 indices.push_back(tempIndices[0]);
                 indices.push_back(tempIndices[4]);
                 indices.push_back(tempIndices[5]);
+
+                indexCount = 12;
             }
 
             //Create or add to an object
@@ -487,48 +487,16 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 {
                     Object newObject;
                     newObject.name = currentObjectName;
+                    Submesh submesh;
+                    submesh.startIndex = (int)(indices.size() - indexCount);
+                    submesh.indexCount = indexCount;
+                    newObject.submesh = submesh;
                     objects.push_back(newObject);
                     currentObject = &objects.back();
                 }
-
-                //Create or add to a group
-                if (!currentGroupName.empty())
+                else //Update the submesh indexCount
                 {
-                    Group* currentGroup = nullptr;
-                    for (int i = 0; i < currentObject->groups.size(); i++)
-                    {
-                        if (currentObject->groups[i].name == currentGroupName)
-                        {
-                            currentGroup = &currentObject->groups[i];
-                            break;
-                        }
-                    }
-                    //If no groups with that name exists, create a new group
-                    if (currentGroup == nullptr)
-                    {
-                        Group newGroup;
-                        newGroup.name = currentGroupName;
-                        if (!currentSmoothGroupName.empty())
-                        {
-                            newGroup.smoothGroupName = currentSmoothGroupName;
-                        }
-                        else
-                        {
-                            newGroup.smoothGroupName = "";
-                        }
-                        currentObject->groups.push_back(newGroup);
-                        currentGroup = &currentObject->groups.back();
-                    }
-
-                    //Add the vertices to the group
-                    for (int i = 0; i < tempIndices.size(); i++)
-                    {
-                        currentGroup->vertices.push_back(vertices[tempIndices[i]]);
-                    }
-
-                    //Create a submesh for the group
-                    Submesh& submesh = CreateSubmesh((int)(indices.size() - tempIndices.size()), (int)tempIndices.size(), materials[currentMaterial]);
-                    currentGroup->submeshIndex = (int)(submeshes.size() - 1);
+                    currentObject->submesh.indexCount += indexCount;
                 }
             }
         }
@@ -554,4 +522,9 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
 int ObjectHandler::getIndexCount() const
 {
     return (int)this->indices.size();
+}
+
+Submesh ObjectHandler::getSubmesh(int object) const
+{
+    return this->objects[object].submesh;
 }
