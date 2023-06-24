@@ -43,12 +43,6 @@ struct Submesh
 {
 	int startIndex;
 	int indexCount;
-
-	//Submesh(int startIndex, int indexCount)
-	//{
-	//	this->startIndex = startIndex;
-	//	this->indexCount = indexCount;
-	//}
 };
 
 struct Object
