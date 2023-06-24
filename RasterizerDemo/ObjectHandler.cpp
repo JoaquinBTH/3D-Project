@@ -1,0 +1,557 @@
+#include "ObjectHandler.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+bool ObjectHandler::LoadMaterial(ID3D11Device* device, std::string fileName)
+{
+    //Open the new file
+    fileName = "Models/" + fileName;
+    std::ifstream file(fileName);
+    if (!file.is_open())
+    {
+        return false; //File not found
+    }
+
+    //Create the necessary variables
+    std::string line;
+    std::string materialName;
+    XMFLOAT3 ambientColor;
+    XMFLOAT3 diffuseColor;
+    XMFLOAT3 specularColor;
+    float shininess = 0.0f;
+    std::string diffuseMap = "";
+    std::string specularMap = "";
+    std::string ambientMap = "";
+    std::vector<std::string> diffuseMaps;
+    std::vector<std::string> ambientMaps;
+    std::vector<std::string> specularMaps;
+    bool exists = false;
+    int currentMaterialIndex = 0;
+
+    //Parse each line in the MTL file
+    while (std::getline(file, line))
+    {
+        std::stringstream ss(line); //Load line into a stringstream
+
+        //Get the prefix
+        std::string prefix;
+        ss >> prefix;
+
+        if (prefix == "newmtl")
+        {
+            //Check if material name exists
+            exists = false;
+            ss >> materialName;
+            for (int i = 0; i < materials.size(); i++)
+            {
+                if (materialName == materials[i].name)
+                {
+                    exists = true;
+                    currentMaterialIndex = i;
+                    diffuseMaps.push_back("");
+                    ambientMaps.push_back("");
+                    specularMaps.push_back("");
+                    break;
+                }
+            }
+        }
+
+        if (exists)
+        {
+            if (prefix == "Ns")
+            {
+                ss >> shininess;
+                materials[currentMaterialIndex].shininess = shininess;
+            }
+            else if (prefix == "Ka")
+            {
+                ss >> ambientColor.x >> ambientColor.y >> ambientColor.z;
+                materials[currentMaterialIndex].ambientColor = ambientColor;
+            }
+            else if (prefix == "Kd")
+            {
+                ss >> diffuseColor.x >> diffuseColor.y >> diffuseColor.z;
+                materials[currentMaterialIndex].diffuseColor = diffuseColor;
+            }
+            else if (prefix == "Ks")
+            {
+                ss >> specularColor.x >> specularColor.y >> specularColor.z;
+                materials[currentMaterialIndex].specularColor = specularColor;
+            }
+            else if (prefix == "map_Kd")
+            {
+                ss >> diffuseMap;
+                diffuseMaps.back() = "Textures/" + diffuseMap;
+            }
+            else if (prefix == "map_Ka")
+            {
+                ss >> ambientMap;
+                ambientMaps.back() = "Textures/" + ambientMap;
+            }
+            else if (prefix == "map_Ks")
+            {
+                ss >> specularMap;
+                specularMaps.back() = "Textures/" + specularMap;
+            }
+        }
+    }
+
+    if (!LoadTexture(device, ambientMaps, this->mapKaTextureArray, this->mapKaSRV))
+    {
+        return false;
+    }
+    
+    if (!LoadTexture(device, diffuseMaps, this->mapKdTextureArray, this->mapKdSRV))
+    {
+        return false;
+    }
+
+    if (!LoadTexture(device, specularMaps, this->mapKsTextureArray, this->mapKsSRV))
+    {
+        return false;
+    }
+
+    file.close();
+
+    return true;
+}
+
+Submesh& ObjectHandler::CreateSubmesh(int startIndex, int indexCount, const Material& material)
+{
+    Submesh submesh;
+    submesh.startIndex = startIndex;
+    submesh.indexCount = indexCount;
+    submesh.material = material;
+    submeshes.push_back(submesh);
+
+    return submeshes.back();
+}
+
+const Submesh& ObjectHandler::GetSubmesh(int submeshIndex) const
+{
+    return submeshes[submeshIndex];
+}
+
+void ObjectHandler::CreateBuffers(ID3D11Device* device)
+{
+    //Create vertex buffer
+    D3D11_BUFFER_DESC vertexBufferDesc{};
+    vertexBufferDesc.ByteWidth = (UINT)(sizeof(Vertex) * vertices.size());
+    vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+    vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    vertexBufferDesc.CPUAccessFlags = 0;
+    vertexBufferDesc.MiscFlags = 0;
+    vertexBufferDesc.StructureByteStride = 0;
+
+    D3D11_SUBRESOURCE_DATA vertexData{};
+    vertexData.pSysMem = vertices.data();
+    vertexData.SysMemPitch = 0;
+    vertexData.SysMemSlicePitch = 0;
+
+    device->CreateBuffer(&vertexBufferDesc, &vertexData, &this->vertexBuffer);
+
+    //Create index buffer
+    D3D11_BUFFER_DESC indexBufferDesc{};
+    indexBufferDesc.ByteWidth = (UINT)(sizeof(int) * indices.size());
+    indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+    indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    indexBufferDesc.CPUAccessFlags = 0;
+    indexBufferDesc.MiscFlags = 0;
+    indexBufferDesc.StructureByteStride = 0;
+
+    D3D11_SUBRESOURCE_DATA indexData{};
+    indexData.pSysMem = indices.data();
+    indexData.SysMemPitch = 0;
+    indexData.SysMemSlicePitch = 0;
+
+    device->CreateBuffer(&indexBufferDesc, &indexData, &this->indexBuffer);
+}
+
+bool ObjectHandler::LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV)
+{
+    std::vector<unsigned char*> imageDataList;
+
+    int width = 0, height = 0, components = 0;
+    for (int i = 0; i < maps.size(); i++)
+    {
+        unsigned char* imageData = stbi_load(maps[i].c_str(), &width, &height, &components, 4);
+        if (imageData == NULL)
+        {
+            imageData = stbi_load("Textures/missingtextures.png", &width, &height, &components, 4); //Default texture
+        }
+
+        imageDataList.push_back(imageData);
+    }
+
+    D3D11_TEXTURE2D_DESC textureDesc{};
+    textureDesc.Width = width;
+    textureDesc.Height = height;
+    textureDesc.MipLevels = 1;
+    textureDesc.ArraySize = (UINT)materials.size();
+    textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.SampleDesc.Quality = 0;
+    textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
+    textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    textureDesc.CPUAccessFlags = 0;
+    textureDesc.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initialData{};
+
+    std::vector<D3D11_SUBRESOURCE_DATA> initialDataList;
+    for (int i = 0; i < imageDataList.size(); i++)
+    {
+        initialDataList.push_back(initialData);
+        initialDataList[i].pSysMem = imageDataList[i];
+        initialDataList[i].SysMemPitch = width * 4;
+        initialDataList[i].SysMemSlicePitch = height * width * 4;;
+    }
+
+    device->CreateTexture2D(&textureDesc, &initialDataList.data()[0], &texture);
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+    srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    srvDesc.Texture2DArray.ArraySize = (UINT)materials.size();
+    srvDesc.Texture2DArray.FirstArraySlice = 0;
+    srvDesc.Texture2DArray.MipLevels = 1;
+    srvDesc.Texture2DArray.MostDetailedMip = 0;
+
+    if (texture != NULL)
+    {
+        device->CreateShaderResourceView(texture, &srvDesc, &textureSRV);
+    }
+
+    for (int i = 0; i < imageDataList.size(); i++)
+    {
+        stbi_image_free(imageDataList[i]);
+    }
+
+    return true;
+}
+
+ObjectHandler::ObjectHandler()
+{
+}
+
+ObjectHandler::~ObjectHandler()
+{
+    this->vertexBuffer->Release();
+    this->indexBuffer->Release();
+    this->mapKdTextureArray->Release();
+    this->mapKaTextureArray->Release();
+    this->mapKsTextureArray->Release();
+    this->mapKdSRV->Release();
+    this->mapKaSRV->Release();
+    this->mapKsSRV->Release();
+    this->materials.clear();
+    this->vertices.clear();
+    this->indices.clear();
+    for (int i = 0; i < this->objects.size(); i++)
+    {
+        for (int j = 0; j < this->objects[i].groups.size(); j++)
+        {
+            this->objects[i].groups[j].vertices.clear();
+        }
+        this->objects[i].groups.clear();
+    }
+    this->objects.clear();
+}
+
+bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
+{
+    //Clear previous object
+    this->materials.clear();
+    this->vertices.clear();
+    this->indices.clear();
+    for (int i = 0; i < this->objects.size(); i++)
+    {
+        for (int j = 0; j < this->objects[i].groups.size(); j++)
+        {
+            this->objects[i].groups[j].vertices.clear();
+        }
+        this->objects[i].groups.clear();
+    }
+    this->objects.clear();
+
+    //Open the new file
+    std::ifstream file(fileName);
+    if (!file.is_open())
+    {
+        return false; //File not found
+    }
+
+    //Create the necessary variables
+    std::string line;
+    std::string currentGroupName = "";
+    std::string currentObjectName = "";
+    std::string currentSmoothGroupName = "";
+    std::string mtlFileName = "";
+    int currentMaterial = 0;
+    std::vector<XMFLOAT3> positions;
+    std::vector<XMFLOAT2> UVs;
+    std::vector<XMFLOAT3> normals;
+
+    //Parse each line in the OBJ file
+    while (std::getline(file, line))
+    {
+        std::stringstream ss(line); //Load the line into a stringstream
+
+        //Get the prefix
+        std::string prefix;
+        ss >> prefix;
+
+        if (prefix == "o")
+        {
+            //Change currentObjectName and Reset currentGroupName
+            ss >> currentObjectName;
+            currentGroupName = "";
+        }
+        else if (prefix == "v")
+        {
+            //Add vertex positions
+            XMFLOAT3 pos;
+            ss >> pos.x >> pos.y >> pos.z;
+            positions.push_back(pos);
+        }
+        else if (prefix == "vt")
+        {
+            //Add vertex UVs
+            XMFLOAT2 UV;
+            ss >> UV.x >> UV.y;
+            UVs.push_back(UV);
+        }
+        else if (prefix == "vn")
+        {
+            //Add vertex normals
+            XMFLOAT3 normal;
+            ss >> normal.x >> normal.y >> normal.z;
+            normals.push_back(normal);
+        }
+        else if (prefix == "g")
+        {
+            //Change currentGroupName
+            ss >> currentGroupName;
+        }
+        else if (prefix == "usemtl")
+        {
+            //Add material to list if new. Otherwise select index to give to vertices to keep track of their material.
+            std::string materialName;
+            ss >> materialName;
+
+            //Check if material already exists
+            bool sameMaterial = false;
+            for (int i = 0; i < materials.size(); i++)
+            {
+                if (materials[i].name == materialName)
+                {
+                    sameMaterial = true;
+                    currentMaterial = i;
+                    break;
+                }
+            }
+
+            //Create new material
+            if (!sameMaterial)
+            {
+                currentMaterial = (int)materials.size();
+                Material mat =
+                {
+                    materialName, currentMaterial
+                };
+                materials.push_back(mat);
+            }
+        }
+        else if (prefix == "s")
+        {
+            //Change currentSmoothingGroupName
+            ss >> currentSmoothGroupName;
+        }
+        else if (prefix == "f")
+        {
+            //Isolate the line with all the indices that make up the face
+            line = line.substr(2);
+            std::stringstream faces(line);
+            std::string vertexData;
+
+            //Parse through the line with all indices
+            std::vector<int> tempIndices; //Temporary list keeping track of the index for the new vertices to prevent duplicates from being created
+            while (std::getline(faces, vertexData, ' '))
+            {
+                //Isolate each set of vertex indices (position, UV, normal)
+                std::stringstream vertexIndices(vertexData);
+                std::string indexData;
+
+                //Extract each index as they are separated by a '/' (Example: "1/1/1")
+                int posIndex, UVIndex, normalIndex;
+                std::getline(vertexIndices, indexData, '/');
+                posIndex = std::stoi(indexData) - 1;
+                std::getline(vertexIndices, indexData, '/');
+                UVIndex = std::stoi(indexData) - 1;
+                std::getline(vertexIndices, indexData, ' ');
+                normalIndex = std::stoi(indexData) - 1;
+
+                //Create a vertex for this set of indices in the face
+                Vertex vertex(positions[posIndex], normals[normalIndex], UVs[UVIndex], currentMaterial);
+
+                //Search for duplicates in current list of vertices
+                bool duplicate = false;
+                for (int i = 0; i < vertices.size(); i++)
+                {
+                    if (memcmp(&vertices[i], &vertex, sizeof(Vertex)) == 0) //If the data in vertices[i] perfectly matches the newly created vertex
+                    {
+                        duplicate = true;
+                        tempIndices.push_back(i);
+                        break;
+                    }
+                }
+                
+                //If no duplicate was found, add the new vertex to the list of vertices
+                if (!duplicate)
+                {
+                    vertices.push_back(vertex);
+                    tempIndices.push_back(((int)vertices.size() - 1));
+                }
+            }
+
+            //Add the tempIndices to the real list of vertex indices (Based on the amount of new indices)
+            if (tempIndices.size() == 3)
+            {
+                //Add triangular face
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[1]);
+                indices.push_back(tempIndices[2]);
+            }
+            else if (tempIndices.size() == 4)
+            {
+                //Add quadratic face
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[1]);
+                indices.push_back(tempIndices[2]);
+
+                indices.push_back(tempIndices[2]);
+                indices.push_back(tempIndices[3]);
+                indices.push_back(tempIndices[0]);
+            }
+            else if (tempIndices.size() == 5)
+            {
+                //Add pentagonal face
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[1]);
+                indices.push_back(tempIndices[2]);
+
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[2]);
+                indices.push_back(tempIndices[3]);
+
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[3]);
+                indices.push_back(tempIndices[4]);
+            }
+            else if (tempIndices.size() == 6)
+            {
+                //Add hexagonal face
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[1]);
+                indices.push_back(tempIndices[2]);
+
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[2]);
+                indices.push_back(tempIndices[3]);
+
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[3]);
+                indices.push_back(tempIndices[4]);
+
+                indices.push_back(tempIndices[0]);
+                indices.push_back(tempIndices[4]);
+                indices.push_back(tempIndices[5]);
+            }
+
+            //Create or add to an object
+            if (!currentObjectName.empty()) //If a name for the object exists
+            {
+                //Check if an object with the same name already exists
+                Object* currentObject = nullptr;
+                for (int i = 0; i < objects.size(); i++)
+                {
+                    if (objects[i].name == currentObjectName)
+                    {
+                        currentObject = &objects[i];
+                        break;
+                    }
+                }
+
+                //If no object with that name exists, create a new object
+                if (currentObject == nullptr)
+                {
+                    Object newObject;
+                    newObject.name = currentObjectName;
+                    objects.push_back(newObject);
+                    currentObject = &objects.back();
+                }
+
+                //Create or add to a group
+                if (!currentGroupName.empty())
+                {
+                    Group* currentGroup = nullptr;
+                    for (int i = 0; i < currentObject->groups.size(); i++)
+                    {
+                        if (currentObject->groups[i].name == currentGroupName)
+                        {
+                            currentGroup = &currentObject->groups[i];
+                            break;
+                        }
+                    }
+                    //If no groups with that name exists, create a new group
+                    if (currentGroup == nullptr)
+                    {
+                        Group newGroup;
+                        newGroup.name = currentGroupName;
+                        if (!currentSmoothGroupName.empty())
+                        {
+                            newGroup.smoothGroupName = currentSmoothGroupName;
+                        }
+                        else
+                        {
+                            newGroup.smoothGroupName = "";
+                        }
+                        currentObject->groups.push_back(newGroup);
+                        currentGroup = &currentObject->groups.back();
+                    }
+
+                    //Add the vertices to the group
+                    for (int i = 0; i < tempIndices.size(); i++)
+                    {
+                        currentGroup->vertices.push_back(vertices[tempIndices[i]]);
+                    }
+
+                    //Create a submesh for the group
+                    Submesh& submesh = CreateSubmesh((int)(indices.size() - tempIndices.size()), (int)tempIndices.size(), materials[currentMaterial]);
+                    currentGroup->submeshIndex = (int)(submeshes.size() - 1);
+                }
+            }
+        }
+        if (prefix == "mtllib")
+        {
+            ss >> mtlFileName;
+        }
+    }
+    file.close();
+
+    //Create the buffers
+    CreateBuffers(device);
+
+    //Parse MTL file
+    if (!LoadMaterial(device, mtlFileName))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+int ObjectHandler::getIndexCount() const
+{
+    return (int)this->indices.size();
+}

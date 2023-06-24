@@ -1,5 +1,6 @@
 #include "Camera.h"
-//#include "Light.h"
+#include "Light.h"
+#include "ObjectHandler.h"
 #include "Timer.h"
 #include "WindowHelper.h"
 #include "D3D11Helper.h"
@@ -97,12 +98,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//Standard Rendering
 	ID3D11VertexShader* vShader;
 	ID3D11PixelShader* pShader;
-
-	//Base model and sampler
-	ID3D11Buffer* vertexBuffer;
-	Parser* baseModel = new Parser("Models/Room.obj");
-	ID3D11Texture2D* texture;
-	ID3D11ShaderResourceView* textureSRV;
 	ID3D11SamplerState* sampler;
 
 	//Set up the environment
@@ -129,11 +124,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	lights->AddLight(renderer->device, 0);
 	lights->AddLight(renderer->device, 1, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, -1.0f));
 
+	//Create object
+	ObjectHandler* object = new ObjectHandler();
+	object->LoadObject(renderer->device, "Models/Room.obj");
+
 	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
 	//Initialize the pipeline
-	if (!SetupPipeline(renderer->device, vertexBuffer, vShader, pShader, renderer->inputLayout, matrixConstantBuffer, baseModel, texture, textureSRV, sampler))
+	if (!SetupPipeline(renderer->device, vShader, pShader, renderer->inputLayout, matrixConstantBuffer, sampler))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
 		return -1;
@@ -191,8 +190,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else
 		{
-			//renderer->StandardRender(vertexBuffer, indexBufferTest, currentLightConstBuff, matrixConstantBuffer, cameraPosConstantBuffer);
-			renderer->StandardRender(textureSRV, vShader, pShader, vertexBuffer, matrixConstantBuffer, baseModel, sampler, lights->lightSRV, lights->numberOfLightsBuffer, camera->cameraPosConstantBuffer);
+			renderer->StandardRender(object, vShader, pShader, matrixConstantBuffer, sampler, lights->lightSRV, lights->numberOfLightsBuffer, camera->cameraPosConstantBuffer);
 		}
 		ImGuiSelectRenderMethod(useCubeMap, useLOD, useCulling, useParticle);
 
@@ -206,17 +204,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ImGui::DestroyContext();
 
 	//Release all COM objects
-	vertexBuffer->Release();
 	pShader->Release();
 	vShader->Release();
-	texture->Release();
-	textureSRV->Release();
 	sampler->Release();
 	matrixConstantBuffer->Release();
 	delete renderer;
-	delete baseModel;
 	delete lights;
 	delete camera;
+	delete object;
 
 	return 0;
 }

@@ -1,12 +1,11 @@
 #pragma once
 
 #include <array>
-
+#include <d3d11.h>
 #include <cmath>
-
-#include "Parser.h"
-
-#include "Light.h"
+#include <DirectXMath.h>
+#include <fstream>
+#include <iostream>
 
 using namespace DirectX;
 
@@ -23,5 +22,4 @@ struct MatrixConstantBuffer
 	}
 };
 
-bool SetupPipeline(ID3D11Device * device, ID3D11Buffer *& vertexBuffer, ID3D11VertexShader *& vShader, ID3D11PixelShader *& pShader, ID3D11InputLayout *& inputLayout,
-					ID3D11Buffer*& matrixConstantBuffer, Parser*& baseModel, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, ID3D11SamplerState*& sampler);
+bool SetupPipeline(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11PixelShader*& pShader, ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler);

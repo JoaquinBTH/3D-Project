@@ -36,12 +36,6 @@
     <ClCompile Include="Timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Parser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MtlParser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -72,6 +66,9 @@
     <ClCompile Include="Imgui\backends\imgui_impl_win32.cpp">
       <Filter>Imgui</Filter>
     </ClCompile>
+    <ClCompile Include="ObjectHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowHelper.h">
@@ -90,15 +87,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Timer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Parser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Vector3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MtlParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Light.h">
@@ -136,6 +124,9 @@
     </ClInclude>
     <ClInclude Include="Imgui\backends\imgui_impl_win32.h">
       <Filter>Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectHandler.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

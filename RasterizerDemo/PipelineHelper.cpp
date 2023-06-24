@@ -1,12 +1,5 @@
 #include "PipelineHelper.h"
 
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <vector>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11PixelShader*& pShader, std::string& vShaderByteCode)
 {
 	std::string shaderData;
@@ -73,25 +66,6 @@ bool CreateInputLayout(ID3D11Device* device, ID3D11InputLayout*& inputLayout, co
 	return !FAILED(hr);
 }
 
-bool CreateVertexBuffer(ID3D11Device* device, ID3D11Buffer*& vertexBuffer, Parser*& baseModel) //Remove this and add to Parser as Object handler
-{
-	D3D11_BUFFER_DESC bufferDesc{};
-	bufferDesc.ByteWidth = baseModel->sizeOfVertexBuffer();
-	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferDesc.CPUAccessFlags = 0;
-	bufferDesc.MiscFlags = 0;
-	bufferDesc.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA data;
-	data.pSysMem = &baseModel->testVertices[0];
-	data.SysMemPitch = 0;
-	data.SysMemSlicePitch = 0;
-
-	HRESULT hr = device->CreateBuffer(&bufferDesc, &data, &vertexBuffer);
-	return !FAILED(hr);
-}
-
 bool CreateConstantMatrixBuffer(ID3D11Device* device, ID3D11Buffer*& matrixConstantBuffer)
 {
 	D3D11_BUFFER_DESC constantBufferDesc{};
@@ -103,26 +77,6 @@ bool CreateConstantMatrixBuffer(ID3D11Device* device, ID3D11Buffer*& matrixConst
 	constantBufferDesc.StructureByteStride = 0;
 
 	HRESULT hr = device->CreateBuffer(&constantBufferDesc, nullptr, &matrixConstantBuffer);
-	return !FAILED(hr);
-}
-
-bool CreateBaseTexture(ID3D11Device* device, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, Parser*& baseModel) //Remove this and add to Parser as Object handler
-{
-	if (FAILED(device->CreateTexture2D(&baseModel->mtlParser->description, &baseModel->GiveData()[0], &texture)))
-	{
-		std::cerr << "Failed to create texture!" << std::endl;
-		return false;
-	}
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-	srvDesc.Texture2DArray.ArraySize = (UINT)baseModel->GiveMaterialInfo().size();
-	srvDesc.Texture2DArray.FirstArraySlice = 0;
-	srvDesc.Texture2DArray.MipLevels = 1;
-	srvDesc.Texture2DArray.MostDetailedMip = 0;
-
-	HRESULT hr = device->CreateShaderResourceView(texture, &srvDesc, &textureSRV);
 	return !FAILED(hr);
 }
 
@@ -143,8 +97,7 @@ bool CreateSamplerState(ID3D11Device* device, ID3D11SamplerState*& sampler)
 	return !FAILED(hr);
 }
 
-bool SetupPipeline(ID3D11Device* device, ID3D11Buffer*& vertexBuffer, ID3D11VertexShader*& vShader,
-	ID3D11PixelShader*& pShader, ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, Parser*& baseModel, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, ID3D11SamplerState*& sampler)
+bool SetupPipeline(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11PixelShader*& pShader, ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler)
 {
 	std::string vShaderByteCode;
 	if (!LoadShaders(device, vShader, pShader, vShaderByteCode))
@@ -159,22 +112,10 @@ bool SetupPipeline(ID3D11Device* device, ID3D11Buffer*& vertexBuffer, ID3D11Vert
 		return false;
 	}
 
-	if (!CreateVertexBuffer(device, vertexBuffer, baseModel)) //Added baseModel
-	{
-		std::cerr << "Error creating vertex buffer!" << std::endl;
-		return false;
-	}
-
 	//Extra additions
 	if (!CreateConstantMatrixBuffer(device, matrixConstantBuffer))
 	{
 		std::cerr << "Error creating constant matrix buffer!" << std::endl;
-		return false;
-	}
-
-	if (!CreateBaseTexture(device, texture, textureSRV, baseModel))
-	{
-		std::cerr << "Error creating texture or srv!" << std::endl;
 		return false;
 	}
 

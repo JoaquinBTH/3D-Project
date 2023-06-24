@@ -1,6 +1,6 @@
 #include "Octree.h"
 
-Octree::Octree(std::vector<Parser*>& objects, XMFLOAT3 position, int depth, float size, bool first)
+Octree::Octree(std::vector<ObjectHandler*>& objects, XMFLOAT3 position, int depth, float size, bool first)
 {
 	this->positionVec = XMVectorSet(position.x, position.y, position.z, 1.0f);
 	this->corners[0] = XMFLOAT3(position.x + size, position.y + size, position.z + size);
@@ -58,13 +58,14 @@ Octree::Octree(std::vector<Parser*>& objects, XMFLOAT3 position, int depth, floa
 	}
 }
 
-void Octree::UpdateItemsAvailable(std::vector<Parser*> objects)
+void Octree::UpdateItemsAvailable(std::vector<ObjectHandler*> objects)
 {
 	objectsInArea.clear();
 
 	for (int i = 0; i < objects.size(); i++)
 	{
 		bool addObject = false;
+		/*
 		for (int j = 0; j < objects[i]->AmountOfVertices(); j++)
 		{
 			float position[3];
@@ -76,6 +77,7 @@ void Octree::UpdateItemsAvailable(std::vector<Parser*> objects)
 				break;
 			}
 		}
+		*/
 
 		if (addObject == true)
 		{
@@ -137,6 +139,7 @@ std::vector<int> Octree::getObjectsToRender(const XMFLOAT3& position, const XMVE
 		for (int i = ((int)this->objectsInArea.size() - 1); i > -1; i--)
 		{
 			XMFLOAT3 cornersOfObject[8];
+			/*
 			cornersOfObject[0] = XMFLOAT3(this->objectsInArea[i]->giveVertices()[0].pos);
 			cornersOfObject[1] = XMFLOAT3(this->objectsInArea[i]->giveVertices()[1].pos);
 			cornersOfObject[2] = XMFLOAT3(this->objectsInArea[i]->giveVertices()[2].pos);
@@ -145,6 +148,7 @@ std::vector<int> Octree::getObjectsToRender(const XMFLOAT3& position, const XMVE
 			cornersOfObject[5] = XMFLOAT3(this->objectsInArea[i]->giveVertices()[9].pos);
 			cornersOfObject[6] = XMFLOAT3(this->objectsInArea[i]->giveVertices()[18].pos);
 			cornersOfObject[7] = XMFLOAT3(this->objectsInArea[i]->giveVertices()[19].pos);
+			*/
 
 			bool found = true;
 

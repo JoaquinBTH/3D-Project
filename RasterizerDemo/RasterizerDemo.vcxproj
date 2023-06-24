@@ -158,9 +158,8 @@
     <ClCompile Include="Imgui\imgui_widgets.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MtlParser.cpp" />
+    <ClCompile Include="ObjectHandler.cpp" />
     <ClCompile Include="Octree.cpp" />
-    <ClCompile Include="Parser.cpp" />
     <ClCompile Include="PipelineHelper.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Timer.cpp" />
@@ -179,14 +178,12 @@
     <ClInclude Include="Imgui\imstb_textedit.h" />
     <ClInclude Include="Imgui\imstb_truetype.h" />
     <ClInclude Include="Light.h" />
-    <ClInclude Include="MtlParser.h" />
+    <ClInclude Include="ObjectHandler.h" />
     <ClInclude Include="Octree.h" />
-    <ClInclude Include="Parser.h" />
     <ClInclude Include="PipelineHelper.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Timer.h" />
-    <ClInclude Include="Vector3.h" />
     <ClInclude Include="WindowHelper.h" />
   </ItemGroup>
   <ItemGroup>
