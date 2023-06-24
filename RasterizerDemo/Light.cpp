@@ -141,7 +141,12 @@ LightHandler::~LightHandler()
 
 }
 
-void LightHandler::AddLight(ID3D11Device* device, const int isDirectional, const XMFLOAT4 ambient, const XMFLOAT4 diffuse, const XMFLOAT4 specular, const XMFLOAT3 direction, const float range, const XMFLOAT3 position, const float angle, const XMFLOAT3 attenuation)
+int const LightHandler::getNrOfLights() const
+{
+	return (int)this->lightList.size();
+}
+
+void LightHandler::AddLight(ID3D11Device* device, const int isDirectional, const XMFLOAT3 position, const XMFLOAT3 direction, const float angle, const XMFLOAT4 ambient, const XMFLOAT4 diffuse, const XMFLOAT4 specular, const float range, const XMFLOAT3 attenuation)
 {
 	//Remake the lightBuffer, lightSRV, and numberOfLights
 	if ((lightBuffer != nullptr) || (lightSRV != nullptr) || (numberOfLightsBuffer != nullptr))

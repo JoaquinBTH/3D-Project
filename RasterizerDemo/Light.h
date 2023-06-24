@@ -49,8 +49,10 @@ public:
 
 	~LightHandler();
 
-	void AddLight(ID3D11Device* device, const int isDirectional = 0, const XMFLOAT4 ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), const XMFLOAT4 diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-				const XMFLOAT4 specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), const XMFLOAT3 direction = XMFLOAT3(0.0f, 0.0f, 1.0f), const float range = 100.0f,
-				const XMFLOAT3 position = XMFLOAT3(0.0f, 5.0f, -5.0f), const float angle = 45.0f, const XMFLOAT3 attenuation = XMFLOAT3(1.0f, 0.01f, 0.01f));
+	int const getNrOfLights() const;
+
+	void AddLight(ID3D11Device* device, const int isDirectional = 0, const XMFLOAT3 position = XMFLOAT3(0.0f, 5.0f, -5.0f), const XMFLOAT3 direction = XMFLOAT3(0.0f, 0.0f, 1.0f), const float angle = 45.0f,
+				const XMFLOAT4 ambient = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), const XMFLOAT4 diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), const XMFLOAT4 specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+				const float range = 100.0f, const XMFLOAT3 attenuation = XMFLOAT3(1.0f, 0.01f, 0.01f));
 };
 

@@ -100,6 +100,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ID3D11PixelShader* pShader;
 	ID3D11SamplerState* sampler;
 
+	//Shadow Mapping
+	ID3D11VertexShader* vShaderShadow;
+	ID3D11PixelShader* pShaderShadow;
+
 	//Set up the environment
 	if (!SetupD3D11(WIDTH, HEIGHT, window, renderer->device, renderer->immediateContext, renderer->swapChain, renderer->rtv, renderer->dsTexture, renderer->dsView, renderer->viewport))
 	{
@@ -122,7 +126,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//Create the lights
 	LightHandler* lights = new LightHandler();
 	lights->AddLight(renderer->device, 0);
-	lights->AddLight(renderer->device, 1, XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, -1.0f));
+	lights->AddLight(renderer->device, 0, XMFLOAT3(10.0f, 4.5f, -4.5f), XMFLOAT3(-1.0f, 0.0f, 0.0f), 10.0f);
+	lights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 10.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, -1.0f));
+	lights->AddLight(renderer->device, 0, XMFLOAT3(6.8f, 10.0f, 5.5f), XMFLOAT3(0.0f, -1.0f, 0.00001f), 20.0f);
 
 	//Create object
 	ObjectHandler* object = new ObjectHandler();
@@ -132,7 +138,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
 	//Initialize the pipeline
-	if (!SetupPipeline(renderer->device, vShader, pShader, renderer->inputLayout, matrixConstantBuffer, sampler))
+	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
 		return -1;
@@ -190,7 +196,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else
 		{
-			renderer->StandardRender(object, vShader, pShader, matrixConstantBuffer, sampler, lights->lightSRV, lights->numberOfLightsBuffer, camera->cameraPosConstantBuffer);
+			renderer->ShadowMap(object, lights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
+			renderer->StandardRender(object, vShader, pShader, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer);
 		}
 		ImGuiSelectRenderMethod(useCubeMap, useLOD, useCulling, useParticle);
 
@@ -206,6 +213,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//Release all COM objects
 	pShader->Release();
 	vShader->Release();
+	vShaderShadow->Release();
+	pShaderShadow->Release();
 	sampler->Release();
 	matrixConstantBuffer->Release();
 	delete renderer;

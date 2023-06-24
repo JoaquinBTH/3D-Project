@@ -1,4 +1,5 @@
 Texture2DArray textures : register(t0);
+Texture2DArray depthMap : register(t1);
 SamplerState usedSampler;
 
 struct Light
@@ -15,7 +16,7 @@ struct Light
 	matrix lightViewAndProjectionMatrix;
 };
 
-StructuredBuffer<Light> lights : register (t1);
+StructuredBuffer<Light> lights : register (t2);
 
 struct PixelShaderInput
 {
@@ -55,6 +56,9 @@ PixelShaderOutput main(PixelShaderInput input)
 	PixelShaderOutput output;
 
 	float4 phongColor = float4(0.0f, 0.0f, 0.0f, 1.0f); //Define the variable for the phong reflection lighting
+
+	float shadowFactor = 1.0f;
+
 	//Caclulate the phong reflection lighting per light
 	for (uint i = 0; i < nrOfLights; i++)
 	{
@@ -62,6 +66,16 @@ PixelShaderOutput main(PixelShaderInput input)
 		//Remove the comments from these if you want the light to rotate with the scene
 		//light.position = mul(world, float4(light.position, 1.0f)).xyz;
 		//light.direction = normalize(mul(world, float4(light.direction, 0.0f)).xyz);
+
+		//Get the pixel's position from the light's perspective and transform it into screenSpace
+		float4 positionInLight = mul(light.lightViewAndProjectionMatrix, input.worldPosition);
+		positionInLight = positionInLight * float4(0.5f, -0.5f, 1.0f, 1.0f) + (float4(0.5f, 0.5f, 0.0f, 0.0f) * positionInLight.w);
+		float2 shadowTexCoord = positionInLight.xy / positionInLight.w;
+
+		//Sample the depthValue at the screenspace position
+		float depthValue = depthMap.Load(int4(shadowTexCoord.x * 1024, shadowTexCoord.y * 512, i, 0)).r;
+		float linearDepth = positionInLight.z / positionInLight.w;
+		float bias = 0.0015f; //Deciding shadow factor if depths are too similar due to rounding errors.
 
 		float3 surfaceNormal = normalize(input.normal); //Normal of the surface
 
@@ -89,6 +103,13 @@ PixelShaderOutput main(PixelShaderInput input)
 				float attenuation = 1.0f / (light.attenuation.x + light.attenuation.y * distance + light.attenuation.z * distance * distance); //Intensity of light (constant, linear, quadratic) 
 
 				phongColor.rgb += ambient + spotlightAttenuation * attenuation * (diffuseLight + specularLight);
+
+				//Compare the depth value with the pixel's current depth
+				if (linearDepth - bias > depthValue)
+				{
+					//In Shadow
+					shadowFactor *= 0.5f;
+				}
 		  }
 		}
 		else if (light.isDirectional)
@@ -103,10 +124,17 @@ PixelShaderOutput main(PixelShaderInput input)
 				float3 specularLight = specularIntensity * light.specular.rgb; //Specular light component
 		
 				phongColor.rgb += ambient + diffuseLight + specularLight;
+
+				//Compare the depth value with the pixel's current depth
+				if (linearDepth - bias > depthValue)
+				{
+					//In Shadow
+					shadowFactor *= 0.5f;
+				}
 			}
 		}
 	}
 
-	output.swapchain = material * phongColor;
+	output.swapchain = material * phongColor * shadowFactor;
 	return output;
 }

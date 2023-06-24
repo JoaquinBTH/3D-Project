@@ -17,7 +17,7 @@ struct CameraPos
 class Camera
 {
 public:
-	Camera(ID3D11Device* device, float aspectRatio, XMFLOAT3 position = XMFLOAT3(0.0f, 0.0f, -2.0f), XMFLOAT3 rotation = XMFLOAT3(0.0f, 0.0f, 0.0f), float fovDegrees = 90.0f, float nearZ = 0.1f, float farZ = 1000.0f);
+	Camera(ID3D11Device* device, float aspectRatio, XMFLOAT3 position = XMFLOAT3(0.0f, 5.0f, -5.0f), XMFLOAT3 rotation = XMFLOAT3(0.0f, 0.0f, 0.0f), float fovDegrees = 90.0f, float nearZ = 0.1f, float farZ = 1000.0f);
 	~Camera();
 	void SetProjectionValues(float fovDegrees, float aspectRatio, float nearZ, float farZ);
 
