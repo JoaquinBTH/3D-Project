@@ -72,13 +72,22 @@ void ImGuiExample(ID3D11ShaderResourceView* secretImageSRV, int secretImageWidth
 	ImGui::End();
 }
 
-void ImGuiSelectRenderMethod(bool& useCubeMap, bool& useLOD, bool& useCulling, bool& useParticle)
+void ImGuiSelectRenderMethod(bool& useDeferred, bool& useCubeMap, bool& useLOD, bool& useCulling, bool& useParticle)
 {
 	bool begun = ImGui::Begin("Render Method");
 	if (begun)
 	{
 		if(ImGui::Button("Standard"))
 		{
+			useDeferred = false;
+			useCubeMap = false;
+			useLOD = false;
+			useCulling = false;
+			useParticle = false;
+		}
+		else if (ImGui::Button("Deferred"))
+		{
+			useDeferred = true;
 			useCubeMap = false;
 			useLOD = false;
 			useCulling = false;
@@ -86,6 +95,7 @@ void ImGuiSelectRenderMethod(bool& useCubeMap, bool& useLOD, bool& useCulling, b
 		}
 		else if (ImGui::Button("Cube Mapping"))
 		{
+			useDeferred = false;
 			useCubeMap = true;
 			useLOD = false;
 			useCulling = false;
@@ -93,6 +103,7 @@ void ImGuiSelectRenderMethod(bool& useCubeMap, bool& useLOD, bool& useCulling, b
 		}
 		else if (ImGui::Button("Level of Detail"))
 		{
+			useDeferred = false;
 			useCubeMap = false;
 			useLOD = true;
 			useCulling = false;
@@ -100,6 +111,7 @@ void ImGuiSelectRenderMethod(bool& useCubeMap, bool& useLOD, bool& useCulling, b
 		}
 		else if (ImGui::Button("Octree Culling"))
 		{
+			useDeferred = false;
 			useCubeMap = false;
 			useLOD = false;
 			useCulling = true;
@@ -107,6 +119,7 @@ void ImGuiSelectRenderMethod(bool& useCubeMap, bool& useLOD, bool& useCulling, b
 		}
 		else if (ImGui::Button("Particles"))
 		{
+			useDeferred = false;
 			useCubeMap = false;
 			useLOD = false;
 			useCulling = false;

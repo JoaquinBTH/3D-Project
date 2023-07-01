@@ -22,7 +22,7 @@ bool CreateInterfaces(ID3D11Device*& device, ID3D11DeviceContext*& immediateCont
 	swapChainDesc.SampleDesc.Count = 1;
 	swapChainDesc.SampleDesc.Quality = 0;
 
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_UNORDERED_ACCESS;
 	swapChainDesc.BufferCount = 1;
 	swapChainDesc.OutputWindow = window;
 	swapChainDesc.Windowed = true;
@@ -45,6 +45,22 @@ bool CreateRenderTargetView(ID3D11Device* device, IDXGISwapChain* swapChain, ID3
 	}
 
 	HRESULT hr = device->CreateRenderTargetView(backBuffer, NULL, &rtv);
+	backBuffer->Release(); //Release the backbuffer to prevent memory leaks.
+	return !(FAILED(hr));
+
+}
+
+bool CreateUnorderedAccessView(ID3D11Device* device, IDXGISwapChain* swapChain, ID3D11UnorderedAccessView*& uav)
+{
+	//Get the address of the back buffer
+	ID3D11Texture2D* backBuffer = nullptr; //The front buffer is displayed on screen and you draw to the back buffer, then you swap them when you're done drawing (so the image in the back buffer is shown)
+	if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer))))
+	{
+		std::cerr << "Failed to get back buffer!" << std::endl;
+		return false;
+	}
+
+	HRESULT hr = device->CreateUnorderedAccessView(backBuffer, NULL, &uav);
 	backBuffer->Release(); //Release the backbuffer to prevent memory leaks.
 	return !(FAILED(hr));
 
@@ -87,7 +103,7 @@ void SetViewport(D3D11_VIEWPORT& viewport, UINT width, UINT height)
 
 bool SetupD3D11(UINT width, UINT height, HWND window, ID3D11Device*& device,
 	ID3D11DeviceContext*& immediateContext, IDXGISwapChain*& swapChain, ID3D11RenderTargetView*& rtv,
-	ID3D11Texture2D*& dsTexture, ID3D11DepthStencilView*& dsView, D3D11_VIEWPORT& viewport)
+	ID3D11UnorderedAccessView*& uav, ID3D11Texture2D*& dsTexture, ID3D11DepthStencilView*& dsView, D3D11_VIEWPORT& viewport)
 {
 	if (!CreateInterfaces(device, immediateContext, swapChain, width, height, window))
 	{
@@ -98,6 +114,12 @@ bool SetupD3D11(UINT width, UINT height, HWND window, ID3D11Device*& device,
 	if (!CreateRenderTargetView(device, swapChain, rtv))
 	{
 		std::cerr << "Error creating rtv!" << std::endl;
+		return false;
+	}
+
+	if (!CreateUnorderedAccessView(device, swapChain, uav))
+	{
+		std::cerr << "Error creating uav!" << std::endl;
 		return false;
 	}
 

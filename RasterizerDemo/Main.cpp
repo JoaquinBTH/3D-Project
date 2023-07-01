@@ -1,6 +1,4 @@
 #include "Camera.h"
-#include "Light.h"
-#include "ObjectHandler.h"
 #include "Timer.h"
 #include "WindowHelper.h"
 #include "D3D11Helper.h"
@@ -105,7 +103,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ID3D11PixelShader* pShaderShadow;
 
 	//Set up the environment
-	if (!SetupD3D11(WIDTH, HEIGHT, window, renderer->device, renderer->immediateContext, renderer->swapChain, renderer->rtv, renderer->dsTexture, renderer->dsView, renderer->viewport))
+	if (!SetupD3D11(WIDTH, HEIGHT, window, renderer->device, renderer->immediateContext, renderer->swapChain, renderer->rtv, renderer->uav, renderer->dsTexture, renderer->dsView, renderer->viewport))
 	{
 		std::cerr << "Failed to setup d3d11!" << std::endl;
 		return -1;
@@ -134,17 +132,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ObjectHandler* object = new ObjectHandler();
 	object->LoadObject(renderer->device, "Models/Room.obj");
 
+	//Deferred rendering
+	DeferredHandler* deferred = new DeferredHandler(renderer->device, WIDTH, HEIGHT);
+
 	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
 	//Initialize the pipeline
-	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler))
+	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler, deferred))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
 		return -1;
 	}
 
 	//Use method switches
+	bool useDeferred = false;
 	bool useLOD = false;
 	bool useCubeMap = false;
 	bool useCulling = false;
@@ -178,7 +180,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		StartImGuiFrame();
 
-		if (useCubeMap == true)
+		if (useDeferred == true)
+		{
+			renderer->ShadowMap(object, lights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
+			renderer->DeferredRender(object, deferred, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer);
+		}
+		else if (useCubeMap == true)
 		{
 			//renderer->CubeRender(vertexBuffer, currentLightConstBuff, matrixConstantBuffer, cubeConstantBuffer, cameraPosConstantBuffer, cubeVertexBuffer);
 		}
@@ -199,7 +206,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			renderer->ShadowMap(object, lights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
 			renderer->StandardRender(object, vShader, pShader, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer);
 		}
-		ImGuiSelectRenderMethod(useCubeMap, useLOD, useCulling, useParticle);
+		ImGuiSelectRenderMethod(useDeferred, useCubeMap, useLOD, useCulling, useParticle);
 
 		EndImGuiFrame();
 
@@ -221,6 +228,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	delete lights;
 	delete camera;
 	delete object;
+	delete deferred;
 
 	return 0;
 }

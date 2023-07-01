@@ -1,11 +1,10 @@
 #pragma once
 
 #include <array>
-#include <d3d11.h>
 #include <cmath>
-#include <DirectXMath.h>
 #include <fstream>
 #include <iostream>
+#include "DeferredHandler.h"
 
 using namespace DirectX;
 
@@ -23,4 +22,4 @@ struct MatrixConstantBuffer
 };
 
 bool SetupPipeline(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11VertexShader*& vShaderShadow, ID3D11PixelShader*& pShader, ID3D11PixelShader*& pShaderShadow,
-		ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler);
+		ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler, DeferredHandler*& deferred);

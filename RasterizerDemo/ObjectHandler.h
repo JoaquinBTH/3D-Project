@@ -13,6 +13,7 @@ struct Vertex
 	float pos[3];
 	float nrml[3];
 	float UV[2];
+	float Ns = 32.0f;
 	int textureUsed;
 
 	Vertex(XMFLOAT3 position, XMFLOAT3 normal, XMFLOAT2 UVcoord, int textureIndex)
@@ -33,10 +34,7 @@ struct Material
 {
 	std::string name;
 	int index;
-	XMFLOAT3 ambientColor;
-	XMFLOAT3 diffuseColor;
-	XMFLOAT3 specularColor;
-	float shininess;
+	float specularExponent;
 };
 
 struct Submesh
@@ -60,7 +58,7 @@ private:
 	std::vector<Object> objects;
 
 	bool LoadMaterial(ID3D11Device* device, const std::string fileName);
-	bool LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV);
+	bool LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, const std::string mapType);
 
 	void CreateBuffers(ID3D11Device* device);
 

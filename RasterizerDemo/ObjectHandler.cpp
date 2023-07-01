@@ -15,10 +15,7 @@ bool ObjectHandler::LoadMaterial(ID3D11Device* device, std::string fileName)
     //Create the necessary variables
     std::string line;
     std::string materialName;
-    XMFLOAT3 ambientColor;
-    XMFLOAT3 diffuseColor;
-    XMFLOAT3 specularColor;
-    float shininess = 0.0f;
+    float specularExponent = 0.0f;
     std::string diffuseMap = "";
     std::string specularMap = "";
     std::string ambientMap = "";
@@ -60,23 +57,8 @@ bool ObjectHandler::LoadMaterial(ID3D11Device* device, std::string fileName)
         {
             if (prefix == "Ns")
             {
-                ss >> shininess;
-                materials[currentMaterialIndex].shininess = shininess;
-            }
-            else if (prefix == "Ka")
-            {
-                ss >> ambientColor.x >> ambientColor.y >> ambientColor.z;
-                materials[currentMaterialIndex].ambientColor = ambientColor;
-            }
-            else if (prefix == "Kd")
-            {
-                ss >> diffuseColor.x >> diffuseColor.y >> diffuseColor.z;
-                materials[currentMaterialIndex].diffuseColor = diffuseColor;
-            }
-            else if (prefix == "Ks")
-            {
-                ss >> specularColor.x >> specularColor.y >> specularColor.z;
-                materials[currentMaterialIndex].specularColor = specularColor;
+                ss >> specularExponent;
+                materials[currentMaterialIndex].specularExponent = specularExponent;
             }
             else if (prefix == "map_Kd")
             {
@@ -96,17 +78,17 @@ bool ObjectHandler::LoadMaterial(ID3D11Device* device, std::string fileName)
         }
     }
 
-    if (!LoadTexture(device, ambientMaps, this->mapKaTextureArray, this->mapKaSRV))
+    if (!LoadTexture(device, ambientMaps, this->mapKaTextureArray, this->mapKaSRV, "ambient"))
     {
         return false;
     }
     
-    if (!LoadTexture(device, diffuseMaps, this->mapKdTextureArray, this->mapKdSRV))
+    if (!LoadTexture(device, diffuseMaps, this->mapKdTextureArray, this->mapKdSRV, "diffuse"))
     {
         return false;
     }
 
-    if (!LoadTexture(device, specularMaps, this->mapKsTextureArray, this->mapKsSRV))
+    if (!LoadTexture(device, specularMaps, this->mapKsTextureArray, this->mapKsSRV, "specular"))
     {
         return false;
     }
@@ -151,7 +133,7 @@ void ObjectHandler::CreateBuffers(ID3D11Device* device)
     device->CreateBuffer(&indexBufferDesc, &indexData, &this->indexBuffer);
 }
 
-bool ObjectHandler::LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV)
+bool ObjectHandler::LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, const std::string mapType)
 {
     std::vector<unsigned char*> imageDataList;
 
@@ -161,7 +143,8 @@ bool ObjectHandler::LoadTexture(ID3D11Device* device, const std::vector<std::str
         unsigned char* imageData = stbi_load(maps[i].c_str(), &width, &height, &components, 4);
         if (imageData == NULL)
         {
-            imageData = stbi_load("Textures/missingtextures.png", &width, &height, &components, 4); //Default texture
+            std::string defaultFileName = "Textures/" + mapType + "MissingTexture.png";
+            imageData = stbi_load(defaultFileName.c_str(), &width, &height, &components, 4); //Default texture
         }
 
         imageDataList.push_back(imageData);
@@ -351,7 +334,7 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
                 currentMaterial = (int)materials.size();
                 Material mat =
                 {
-                    materialName, currentMaterial
+                    materialName, currentMaterial, 32.0f
                 };
                 materials.push_back(mat);
             }
@@ -507,14 +490,20 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
     }
     file.close();
 
-    //Create the buffers
-    CreateBuffers(device);
-
     //Parse MTL file
     if (!LoadMaterial(device, mtlFileName))
     {
         return false;
     }
+
+    //Give the vertices their proper specularExponent
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        vertices[i].Ns = materials[vertices[i].textureUsed].specularExponent;
+    }
+
+    //Create the buffers
+    CreateBuffers(device);
 
     return true;
 }
