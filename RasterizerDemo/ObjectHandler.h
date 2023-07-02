@@ -49,6 +49,12 @@ struct Object
 	Submesh submesh;
 };
 
+struct MiddlePoint
+{
+	XMFLOAT3 middle = { 0.0f, 0.0f, 0.0f };
+	float padding = 0.0f;
+};
+
 class ObjectHandler
 {
 private:
@@ -56,10 +62,12 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Object> objects;
+	MiddlePoint middlePoint;
 
 	bool LoadMaterial(ID3D11Device* device, const std::string fileName);
 	bool LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, const std::string mapType);
 
+	XMFLOAT3 getMiddlePoint() const;
 	void CreateBuffers(ID3D11Device* device);
 
 	void ClearPreviousObject();
@@ -69,6 +77,7 @@ public:
 
 	ID3D11Buffer* vertexBuffer = nullptr;
 	ID3D11Buffer* indexBuffer = nullptr;
+	ID3D11Buffer* middlePointConstantBuffer = nullptr;
 	ID3D11Texture2D* mapKdTextureArray = nullptr;
 	ID3D11Texture2D* mapKaTextureArray = nullptr;
 	ID3D11Texture2D* mapKsTextureArray = nullptr;

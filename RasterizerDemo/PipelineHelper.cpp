@@ -1,11 +1,11 @@
 #include "PipelineHelper.h"
 
-bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11VertexShader*& vShaderShadow, ID3D11PixelShader*& pShader, ID3D11PixelShader*& pShaderShadow, DeferredHandler*& deferred, std::string& vShaderByteCode)
+bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11VertexShader*& vShaderShadow, ID3D11PixelShader*& pShader, ID3D11PixelShader*& pShaderShadow, DeferredHandler*& deferred, LODHandler*& LOD, std::string& vShaderByteCode)
 {
 	//vShader
 	std::string shaderData;
 	std::ifstream reader;
-	reader.open("../x64/Debug/VertexShader.cso", std::ios::binary | std::ios::ate);
+	reader.open("../x64/Debug/BasicVertexShader.cso", std::ios::binary | std::ios::ate);
 	if (!reader.is_open())
 	{
 		std::cerr << "Could not open VS file!" << std::endl;
@@ -72,10 +72,33 @@ bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11Verte
 		return false;
 	}
 
+	//LODVertexShader
+	shaderData.clear();
+	reader.close();
+	reader.open("../x64/Debug/LODVertexShader.cso", std::ios::binary | std::ios::ate);
+	if (!reader.is_open())
+	{
+		std::cerr << "Could not open VS file!" << std::endl;
+		return false;
+	}
+
+	reader.seekg(0, std::ios::end);
+	shaderData.reserve(static_cast<unsigned int>(reader.tellg()));
+	reader.seekg(0, std::ios::beg);
+
+	shaderData.assign((std::istreambuf_iterator<char>(reader)),
+		std::istreambuf_iterator<char>());
+
+	if (FAILED(device->CreateVertexShader(shaderData.c_str(), shaderData.length(), nullptr, &LOD->LODvShader)))
+	{
+		std::cerr << "Failed to create vertex shader!" << std::endl;
+		return false;
+	}
+
 	//pShader
 	shaderData.clear();
 	reader.close();
-	reader.open("../x64/Debug/PixelShader.cso", std::ios::binary | std::ios::ate);
+	reader.open("../x64/Debug/BasicPixelShader.cso", std::ios::binary | std::ios::ate);
 	if (!reader.is_open())
 	{
 		std::cerr << "Could not open PS file!" << std::endl;
@@ -164,6 +187,52 @@ bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11Verte
 		return false;
 	}
 
+	//LODHullShader
+	shaderData.clear();
+	reader.close();
+	reader.open("../x64/Debug/LODHullShader.cso", std::ios::binary | std::ios::ate);
+	if (!reader.is_open())
+	{
+		std::cerr << "Could not open HS file!" << std::endl;
+		return false;
+	}
+
+	reader.seekg(0, std::ios::end);
+	shaderData.reserve(static_cast<unsigned int>(reader.tellg()));
+	reader.seekg(0, std::ios::beg);
+
+	shaderData.assign((std::istreambuf_iterator<char>(reader)),
+		std::istreambuf_iterator<char>());
+
+	if (FAILED(device->CreateHullShader(shaderData.c_str(), shaderData.length(), nullptr, &LOD->LODhShader)))
+	{
+		std::cerr << "Failed to create hull shader!" << std::endl;
+		return false;
+	}
+
+	//LODDomainShader
+	shaderData.clear();
+	reader.close();
+	reader.open("../x64/Debug/LODDomainShader.cso", std::ios::binary | std::ios::ate);
+	if (!reader.is_open())
+	{
+		std::cerr << "Could not open DS file!" << std::endl;
+		return false;
+	}
+
+	reader.seekg(0, std::ios::end);
+	shaderData.reserve(static_cast<unsigned int>(reader.tellg()));
+	reader.seekg(0, std::ios::beg);
+
+	shaderData.assign((std::istreambuf_iterator<char>(reader)),
+		std::istreambuf_iterator<char>());
+
+	if (FAILED(device->CreateDomainShader(shaderData.c_str(), shaderData.length(), nullptr, &LOD->LODdShader)))
+	{
+		std::cerr << "Failed to create domain shader!" << std::endl;
+		return false;
+	}
+
 	return true;
 }
 
@@ -216,10 +285,10 @@ bool CreateSamplerState(ID3D11Device* device, ID3D11SamplerState*& sampler)
 }
 
 bool SetupPipeline(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11VertexShader*& vShaderShadow, ID3D11PixelShader*& pShader, ID3D11PixelShader*& pShaderShadow, 
-		ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler, DeferredHandler*& deferred)
+		ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler, DeferredHandler*& deferred, LODHandler*& LOD)
 {
 	std::string vShaderByteCode;
-	if (!LoadShaders(device, vShader, vShaderShadow, pShader, pShaderShadow, deferred, vShaderByteCode))
+	if (!LoadShaders(device, vShader, vShaderShadow, pShader, pShaderShadow, deferred, LOD, vShaderByteCode))
 	{
 		std::cerr << "Error loading shaders!" << std::endl;
 		return false;

@@ -127,6 +127,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	lights->AddLight(renderer->device, 0, XMFLOAT3(10.0f, 4.5f, -4.5f), XMFLOAT3(-1.0f, 0.0f, 0.0f), 10.0f);
 	lights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 10.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, -1.0f));
 	lights->AddLight(renderer->device, 0, XMFLOAT3(6.8f, 10.0f, 5.5f), XMFLOAT3(0.0f, -1.0f, 0.00001f), 20.0f);
+	lights->AddLight(renderer->device, 0, XMFLOAT3(0.0f, -10.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.00001f), 40.0f);
 
 	//Create object
 	ObjectHandler* object = new ObjectHandler();
@@ -135,11 +136,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//Deferred rendering
 	DeferredHandler* deferred = new DeferredHandler(renderer->device, WIDTH, HEIGHT);
 
+	//Level of detail tessellation and Object
+	ObjectHandler* LODobject = new ObjectHandler();
+	LODobject->LoadObject(renderer->device, "Models/SimpleSmoothSphere.obj");
+	LODHandler* LOD = new LODHandler(renderer->device, "medieval");
+
 	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
 	//Initialize the pipeline
-	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler, deferred))
+	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler, deferred, LOD))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
 		return -1;
@@ -191,7 +197,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else if (useLOD == true)
 		{
-			//renderer->LODRender(LODBuffer, matrixConstantBuffer, cameraPosConstantBuffer);
+			renderer->ShadowMap(LODobject, lights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
+			renderer->LODRender(LODobject, LOD, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer, pShader);
 		}
 		else if (useCulling == true)
 		{
@@ -228,7 +235,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	delete lights;
 	delete camera;
 	delete object;
+	delete LODobject;
 	delete deferred;
+	delete LOD;
 
 	return 0;
 }

@@ -131,6 +131,22 @@ void ObjectHandler::CreateBuffers(ID3D11Device* device)
     indexData.SysMemSlicePitch = 0;
 
     device->CreateBuffer(&indexBufferDesc, &indexData, &this->indexBuffer);
+
+    //Create middle point constant buffer
+    D3D11_BUFFER_DESC constBuffDesc{};
+    constBuffDesc.ByteWidth = sizeof(MiddlePoint);
+    constBuffDesc.Usage = D3D11_USAGE_DYNAMIC;
+    constBuffDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    constBuffDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    constBuffDesc.MiscFlags = 0;
+    constBuffDesc.StructureByteStride = 0;
+
+    D3D11_SUBRESOURCE_DATA buffData{};
+    buffData.pSysMem = &middlePoint;
+    buffData.SysMemPitch = 0;
+    buffData.SysMemSlicePitch = 0;
+
+    device->CreateBuffer(&constBuffDesc, &buffData, &this->middlePointConstantBuffer);
 }
 
 bool ObjectHandler::LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, const std::string mapType)
@@ -237,6 +253,11 @@ void ObjectHandler::ClearPreviousObject()
     if (mapKsSRV != nullptr)
     {
         this->mapKsSRV->Release();
+    }
+
+    if (middlePointConstantBuffer != nullptr)
+    {
+        this->middlePointConstantBuffer->Release();
     }
 
     this->materials.clear();
@@ -503,6 +524,7 @@ bool ObjectHandler::LoadObject(ID3D11Device* device, std::string fileName)
     }
 
     //Create the buffers
+    this->middlePoint.middle = getMiddlePoint();
     CreateBuffers(device);
 
     return true;
@@ -516,4 +538,18 @@ int ObjectHandler::getIndexCount() const
 Submesh ObjectHandler::getSubmesh(int object) const
 {
     return this->objects[object].submesh;
+}
+
+XMFLOAT3 ObjectHandler::getMiddlePoint() const
+{
+    XMFLOAT3 sumOfPositions = {0.0f, 0.0f, 0.0f};
+
+    for (int i = 0; i < vertices.size(); i++)
+    {
+        sumOfPositions.x += vertices[i].pos[0] / vertices.size();
+        sumOfPositions.y += vertices[i].pos[1] / vertices.size();
+        sumOfPositions.z += vertices[i].pos[2] / vertices.size();
+    }
+
+    return sumOfPositions;
 }

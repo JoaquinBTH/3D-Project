@@ -206,3 +206,70 @@ void Render::DeferredRender(ObjectHandler* object, DeferredHandler* deferred, ID
 	//Bind the RTV for ImGui
 	immediateContext->OMSetRenderTargets(1, &rtv, dsView);
 }
+
+void Render::LODRender(ObjectHandler* object, LODHandler* LOD, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer, ID3D11PixelShader* pShader)
+{
+	//Unbind everything that's necessary
+	this->ClearBindings();
+
+	//Clear backbuffer
+	float clearColour[4] = { 0, 0, 0, 0 };
+	immediateContext->ClearRenderTargetView(rtv, clearColour);
+	immediateContext->ClearDepthStencilView(dsView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+
+	//Input assembler
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	immediateContext->IASetVertexBuffers(0, 1, &object->vertexBuffer, &stride, &offset);
+	immediateContext->IASetIndexBuffer(object->indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	immediateContext->IASetInputLayout(inputLayout);
+	immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	//Viewport
+	immediateContext->RSSetViewports(1, &viewport);
+
+	//RasterState
+	ID3D11RasterizerState* nullRS = nullptr;
+	//immediateContext->RSSetState(LOD->LODRaster);
+
+	//Vertex Shader
+	immediateContext->VSSetShader(LOD->LODvShader, nullptr, 0);
+	immediateContext->VSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+	immediateContext->VSSetConstantBuffers(1, 1, &object->middlePointConstantBuffer);
+	immediateContext->VSSetConstantBuffers(2, 1, &cameraPosConstantBuffer);
+
+	//Hull Shader
+	ID3D11HullShader* nullHS = nullptr;
+	immediateContext->HSSetShader(LOD->LODhShader, nullptr, 0);
+
+	//DomainShader
+	ID3D11DomainShader* nullDS = nullptr;
+	immediateContext->DSSetShader(LOD->LODdShader, nullptr, 0);
+	immediateContext->DSSetShaderResources(0, 1, &LOD->heightSRV);
+	immediateContext->DSSetShaderResources(1, 1, &LOD->normalSRV);
+	immediateContext->DSSetSamplers(0, 1, &sampler);
+	immediateContext->DSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+
+	//Pixel Shader
+	immediateContext->PSSetShader(pShader, nullptr, 0);
+	immediateContext->PSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+	immediateContext->PSSetConstantBuffers(1, 1, &lights->numberOfLightsBuffer);
+	immediateContext->PSSetConstantBuffers(2, 1, &cameraPosConstantBuffer);
+	immediateContext->PSSetShaderResources(0, 1, &object->mapKaSRV);
+	immediateContext->PSSetShaderResources(1, 1, &object->mapKdSRV);
+	immediateContext->PSSetShaderResources(2, 1, &object->mapKsSRV);
+	immediateContext->PSSetShaderResources(3, 1, &lights->shadowMapSRV);
+	immediateContext->PSSetShaderResources(4, 1, &lights->lightSRV);
+	immediateContext->PSSetSamplers(0, 1, &sampler);
+
+	//Output Merger
+	immediateContext->OMSetRenderTargets(1, &rtv, dsView);
+
+	//Draw
+	immediateContext->DrawIndexed(object->getIndexCount(), 0, 0);
+
+	//Unbind Raster, hull shader, and domain shader
+	immediateContext->RSSetState(nullRS);
+	immediateContext->HSSetShader(nullHS, nullptr, 0);
+	immediateContext->DSSetShader(nullDS, nullptr, 0);
+}
