@@ -164,6 +164,29 @@ bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11Verte
 		return false;
 	}
 
+	//LODPixelShader
+	shaderData.clear();
+	reader.close();
+	reader.open("../x64/Debug/LODPixelShader.cso", std::ios::binary | std::ios::ate);
+	if (!reader.is_open())
+	{
+		std::cerr << "Could not open PS file!" << std::endl;
+		return false;
+	}
+
+	reader.seekg(0, std::ios::end);
+	shaderData.reserve(static_cast<unsigned int>(reader.tellg()));
+	reader.seekg(0, std::ios::beg);
+
+	shaderData.assign((std::istreambuf_iterator<char>(reader)),
+		std::istreambuf_iterator<char>());
+
+	if (FAILED(device->CreatePixelShader(shaderData.c_str(), shaderData.length(), nullptr, &LOD->LODpShader)))
+	{
+		std::cerr << "Failed to create pixel shader!" << std::endl;
+		return false;
+	}
+
 	//deferredComputeShader
 	shaderData.clear();
 	reader.close();

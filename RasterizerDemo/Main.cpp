@@ -127,7 +127,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	lights->AddLight(renderer->device, 0, XMFLOAT3(10.0f, 4.5f, -4.5f), XMFLOAT3(-1.0f, 0.0f, 0.0f), 10.0f);
 	lights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 10.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, -1.0f));
 	lights->AddLight(renderer->device, 0, XMFLOAT3(6.8f, 10.0f, 5.5f), XMFLOAT3(0.0f, -1.0f, 0.00001f), 20.0f);
-	lights->AddLight(renderer->device, 0, XMFLOAT3(0.0f, -10.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.00001f), 40.0f);
+	lights->AddLight(renderer->device, 0, XMFLOAT3(0.0f, 10.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.00001f), 40.0f);
 
 	//Create object
 	ObjectHandler* object = new ObjectHandler();
@@ -138,8 +138,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	//Level of detail tessellation and Object
 	ObjectHandler* LODobject = new ObjectHandler();
-	LODobject->LoadObject(renderer->device, "Models/SimpleSmoothSphere.obj");
-	LODHandler* LOD = new LODHandler(renderer->device, "medieval");
+	LODobject->LoadObject(renderer->device, "Models/TessellationPlane.obj");
+	LODHandler* LOD = new LODHandler(renderer->device, "Wall");
 
 	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
@@ -198,7 +198,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		else if (useLOD == true)
 		{
 			renderer->ShadowMap(LODobject, lights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
-			renderer->LODRender(LODobject, LOD, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer, pShader);
+			renderer->LODRender(LODobject, LOD, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer);
 		}
 		else if (useCulling == true)
 		{

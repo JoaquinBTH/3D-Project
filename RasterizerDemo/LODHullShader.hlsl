@@ -35,7 +35,7 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 
 	//Tessellation calculation variables
 	float minDistance = 5.0f;
-	float maxDistance = 1.0f;
+	float maxDistance = 3.0f;
 	float maxTessellationFactor = 64.0f;
 
 	//Calculate the tessellation factor to apply to the object based on distance

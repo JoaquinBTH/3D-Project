@@ -1,12 +1,7 @@
-RWTexture2D<unorm float4> backBufferUAV : register(u0);
-
-Texture2D<float4> positionGBuffer : register(t0);
-Texture2D<float4> normalGBuffer : register(t1);
-Texture2D<float4> ambientGBuffer : register(t2);
-Texture2D<float4> diffuseGBuffer : register(t3);
-Texture2D<float4> specularGBuffer : register(t4);
-Texture2D<float4> shininessGBuffer : register(t5);
-Texture2DArray<float4> depthMap : register(t6);
+Texture2DArray ambientTextures : register(t0);
+Texture2DArray diffuseTextures : register(t1);
+Texture2DArray specularTextures : register(t2);
+Texture2DArray depthMap : register(t3);
 SamplerState usedSampler;
 
 struct Light
@@ -23,7 +18,22 @@ struct Light
 	matrix lightViewAndProjectionMatrix;
 };
 
-StructuredBuffer<Light> lights : register (t7);
+StructuredBuffer<Light> lights : register (t4);
+
+struct PixelShaderInput
+{
+	float4 position : SV_POSITION;
+	float4 worldPosition : WORLD;
+	float3 normal : NORMAL;
+	float2 uv : UV;
+	float ns : NS;
+	uint usedtexture : TEXTURE;
+};
+
+struct PixelShaderOutput
+{
+	float4 swapchain : SV_Target0;
+};
 
 cbuffer ConstantBuffer : register (b0)
 {
@@ -42,16 +52,13 @@ cbuffer cameraPosBuffer : register(b2)
 	float3 cameraPosition;
 }
 
-[numthreads(8, 8, 1)]
-void main( uint3 DTid : SV_DispatchThreadID )
+PixelShaderOutput main(PixelShaderInput input)
 {
-	//Get the value for the current pixel to be processed
-	float4 position = positionGBuffer[DTid.xy].xyzw;
-	float3 normal = normalGBuffer[DTid.xy].xyz;
-	float4 ambientMap = ambientGBuffer[DTid.xy].xyzw;
-	float4 diffuseMap = diffuseGBuffer[DTid.xy].xyzw;
-	float4 specularMap = specularGBuffer[DTid.xy].xyzw;
-	float shininess = shininessGBuffer[DTid.xy].x;
+	//Define the maps
+	float4 ambientMap = ambientTextures.Sample(usedSampler, float3(input.uv, input.usedtexture));
+	float4 diffuseMap = diffuseTextures.Sample(usedSampler, float3(input.uv, input.usedtexture));
+	float4 specularMap = specularTextures.Sample(usedSampler, float3(input.uv, input.usedtexture));
+	PixelShaderOutput output;
 
 	float4 phongColor = float4(0.0f, 0.0f, 0.0f, 1.0f); //Define the variable for the phong reflection lighting
 
@@ -61,9 +68,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
 	for (uint i = 0; i < nrOfLights; i++)
 	{
 		Light light = lights[i];
+		//Remove the comments from these if you want the light to rotate with the scene
+		//light.position = mul(world, float4(light.position, 1.0f)).xyz;
+		//light.direction = normalize(mul(world, float4(light.direction, 0.0f)).xyz);
 
 		//Get the pixel's position from the light's perspective and transform it into screenSpace
-		float4 positionInLight = mul(light.lightViewAndProjectionMatrix, position);
+		float4 positionInLight = mul(light.lightViewAndProjectionMatrix, input.worldPosition);
 		positionInLight = positionInLight * float4(0.5f, -0.5f, 1.0f, 1.0f) + (float4(0.5f, 0.5f, 0.0f, 0.0f) * positionInLight.w);
 		float2 shadowTexCoord = positionInLight.xy / positionInLight.w;
 
@@ -72,16 +82,16 @@ void main( uint3 DTid : SV_DispatchThreadID )
 		float linearDepth = positionInLight.z / positionInLight.w;
 		float bias = 0.0015f; //Deciding shadow factor if depths are too similar due to rounding errors.
 
-		float3 surfaceNormal = normalize(normal); //Normal of the surface
+		float3 surfaceNormal = normalize(input.normal); //Normal of the surface
 
 		float3 ambient = light.ambient.rgb; //Light's ambient component
 
-		float3 viewDirection = normalize(cameraPosition - position.xyz); //Direction from surface to camera
+		float3 viewDirection = normalize(cameraPosition - input.worldPosition.xyz); //Direction from surface to camera
 
 		if (!light.isDirectional)
 		{
 			float spotlightAttenuation = 0.0f; //Light intensity depending on if the surface is inside the spotlight or not
-			float3 lightDirection = normalize(light.position - position.xyz); //Surface to light position
+			float3 lightDirection = normalize(light.position - input.worldPosition.xyz); //Surface to light position
 			float spotlightCosine = dot(-lightDirection, light.direction); //Cosine of angle between lightDirection and spot light's direction 
 
 			bool isWithinSpotlight = spotlightCosine >= cos(light.angle); //Is the surface point within the spot light's cone?
@@ -89,11 +99,16 @@ void main( uint3 DTid : SV_DispatchThreadID )
 			if (isWithinSpotlight)
 			{
 				spotlightAttenuation = 1.0f;
-				float3 diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb; //Diffuse light component
+				float3 diffuseLight = saturate(dot(surfaceNormal, light.direction)) * light.diffuse.rgb; //Diffuse light component
+				if (length(diffuseLight) == 0.0f)
+				{
+					diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb;
+				}
+
 				float3 lightReflect = reflect(-lightDirection, surfaceNormal); //Direction of the reflected light 
-				float specularIntensity = pow(saturate(dot(lightReflect, viewDirection)), shininess); //Intensity of the specular light
+				float specularIntensity = pow(saturate(dot(lightReflect, viewDirection)), input.ns); //Intensity of the specular light
 				float3 specularLight = specularIntensity * light.specular.rgb; //Specular light component
-				float3 vecToLight = light.position - position.xyz; //Vector from the surface to the light
+				float3 vecToLight = light.position - input.worldPosition.xyz; //Vector from the surface to the light
 				float distance = length(vecToLight); //Distance of the aforementioned vector
 				float attenuation = 1.0f / (light.attenuation.x + light.attenuation.y * distance + light.attenuation.z * distance * distance); //Intensity of light (constant, linear, quadratic) 
 
@@ -110,12 +125,21 @@ void main( uint3 DTid : SV_DispatchThreadID )
 		else if (light.isDirectional)
 		{
 			float3 lightDirection = normalize(-light.direction); //Because the light is so far away the direction from the surface to the light is just the inverse of the light's direction
-			float facingLight = dot(surfaceNormal, lightDirection); //Check if the surfaceNormal is facing the light or not
+			float facingLight = dot(surfaceNormal, light.direction); //Check if the surfaceNormal is facing the light or not
+			if (facingLight < 0.0f)
+			{
+				facingLight = dot(surfaceNormal, lightDirection);
+			}
 			if (facingLight > 0.0f)
 			{
-				float3 diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb; //Diffuse light component
+				float3 diffuseLight = saturate(dot(surfaceNormal, light.direction)) * light.diffuse.rgb; //Diffuse light component
+				if (length(diffuseLight) == 0.0f)
+				{
+					diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb;
+				}
+
 				float3 lightReflect = reflect(-lightDirection, surfaceNormal); //Direction of the reflected light
-				float specularIntensity = pow(saturate(dot(lightReflect, viewDirection)), shininess); //Intensity of the specular light
+				float specularIntensity = pow(saturate(dot(lightReflect, viewDirection)), input.ns); //Intensity of the specular light
 				float3 specularLight = specularIntensity * light.specular.rgb; //Specular light component
 
 				phongColor.rgb += ambient * ambientMap.rgb + diffuseLight * diffuseMap.rgb + specularLight * specularMap.rgb;
@@ -130,5 +154,6 @@ void main( uint3 DTid : SV_DispatchThreadID )
 		}
 	}
 
-	backBufferUAV[DTid.xy] = phongColor * shadowFactor;
+	output.swapchain = phongColor * shadowFactor;
+	return output;
 }

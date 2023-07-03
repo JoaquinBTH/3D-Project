@@ -17,6 +17,7 @@ public:
 	ID3D11VertexShader* LODvShader = nullptr;
 	ID3D11HullShader* LODhShader = nullptr;
 	ID3D11DomainShader* LODdShader = nullptr;
+	ID3D11PixelShader* LODpShader = nullptr;
 	ID3D11RasterizerState* LODRaster = nullptr;
 	
 	ID3D11Texture2D* heightTexture = nullptr;

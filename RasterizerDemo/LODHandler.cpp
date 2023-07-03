@@ -86,6 +86,7 @@ LODHandler::~LODHandler()
 	if (LODvShader) LODvShader->Release();
 	if (LODhShader) LODhShader->Release();
 	if (LODdShader) LODdShader->Release();
+    if (LODpShader) LODpShader->Release();
 	if (LODRaster) LODRaster->Release();
 
 	if (heightTexture) heightTexture->Release();

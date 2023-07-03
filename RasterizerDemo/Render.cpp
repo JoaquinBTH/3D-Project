@@ -207,7 +207,7 @@ void Render::DeferredRender(ObjectHandler* object, DeferredHandler* deferred, ID
 	immediateContext->OMSetRenderTargets(1, &rtv, dsView);
 }
 
-void Render::LODRender(ObjectHandler* object, LODHandler* LOD, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer, ID3D11PixelShader* pShader)
+void Render::LODRender(ObjectHandler* object, LODHandler* LOD, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer)
 {
 	//Unbind everything that's necessary
 	this->ClearBindings();
@@ -251,7 +251,7 @@ void Render::LODRender(ObjectHandler* object, LODHandler* LOD, ID3D11Buffer* mat
 	immediateContext->DSSetConstantBuffers(0, 1, &matrixConstantBuffer);
 
 	//Pixel Shader
-	immediateContext->PSSetShader(pShader, nullptr, 0);
+	immediateContext->PSSetShader(LOD->LODpShader, nullptr, 0);
 	immediateContext->PSSetConstantBuffers(0, 1, &matrixConstantBuffer);
 	immediateContext->PSSetConstantBuffers(1, 1, &lights->numberOfLightsBuffer);
 	immediateContext->PSSetConstantBuffers(2, 1, &cameraPosConstantBuffer);
