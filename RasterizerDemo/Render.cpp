@@ -273,3 +273,86 @@ void Render::LODRender(ObjectHandler* object, LODHandler* LOD, ID3D11Buffer* mat
 	immediateContext->HSSetShader(nullHS, nullptr, 0);
 	immediateContext->DSSetShader(nullDS, nullptr, 0);
 }
+
+void Render::CubeRender(ObjectHandler* object, CubeMapHandler* cubeMap, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer)
+{
+	//Unbind everything that's necessary
+	this->ClearBindings();
+
+	//Clear backbuffer
+	float clearColour[4] = { 0, 0, 0, 0 };
+	immediateContext->ClearRenderTargetView(rtv, clearColour);
+	for (int i = 0; i < 6; i++)
+	{
+		immediateContext->ClearRenderTargetView(cubeMap->cubeRTV[i], clearColour);
+	}
+	immediateContext->ClearDepthStencilView(dsView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+
+	//Input assembler
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	immediateContext->IASetVertexBuffers(0, 1, &object->vertexBuffer, &stride, &offset);
+	immediateContext->IASetIndexBuffer(object->indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	immediateContext->IASetInputLayout(inputLayout);
+	immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//Viewport
+	immediateContext->RSSetViewports(1, &cubeMap->cubeport);
+
+	//Vertex Shader
+	immediateContext->VSSetShader(cubeMap->cubeVertexShader, nullptr, 0);
+	immediateContext->VSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+
+	//Pixel Shader
+	immediateContext->PSSetShader(pShader, nullptr, 0);
+	immediateContext->PSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+	immediateContext->PSSetConstantBuffers(1, 1, &lights->numberOfLightsBuffer);
+	immediateContext->PSSetConstantBuffers(2, 1, &cameraPosConstantBuffer);
+	immediateContext->PSSetShaderResources(0, 1, &object->mapKaSRV);
+	immediateContext->PSSetShaderResources(1, 1, &object->mapKdSRV);
+	immediateContext->PSSetShaderResources(2, 1, &object->mapKsSRV);
+	immediateContext->PSSetShaderResources(3, 1, &lights->shadowMapSRV);
+	immediateContext->PSSetShaderResources(4, 1, &lights->lightSRV);
+	immediateContext->PSSetSamplers(0, 1, &sampler);
+
+	//Render the scene to fill the cubeMap RTVs
+	for (int i = 0; i < 6; i++)
+	{
+		immediateContext->VSSetConstantBuffers(1, 1, &cubeMap->cubeConstBuff[i]);
+
+		//Output Merger
+		immediateContext->OMSetRenderTargets(1, &cubeMap->cubeRTV[i], NULL);
+
+		//Draw
+		immediateContext->DrawIndexed(object->getIndexCount(), 0, 0);
+	}
+
+	//Bind new vertex shader and render the scene normally
+	immediateContext->VSSetShader(vShader, nullptr, 0);
+	immediateContext->VSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+
+	//Output Merger
+	immediateContext->OMSetRenderTargets(1, &rtv, dsView);
+
+	//Change Viewport
+	immediateContext->RSSetViewports(1, &viewport);
+
+	//Draw
+	immediateContext->DrawIndexed(object->getIndexCount(), 0, 0);
+
+	//Bind a new pixel shader and render the cubeMap
+	immediateContext->PSSetShader(cubeMap->cubePixelShader, nullptr, 0);
+	immediateContext->PSSetShaderResources(0, 1, &cubeMap->cubeSRV);
+	immediateContext->PSSetSamplers(0, 1, &sampler);
+	immediateContext->PSSetConstantBuffers(0, 1, &cameraPosConstantBuffer);
+
+	//Set the new vertex buffer and index buffer
+	immediateContext->IASetVertexBuffers(0, 1, &cubeMap->cubeMapObject->vertexBuffer, &stride, &offset);
+	immediateContext->IASetIndexBuffer(cubeMap->cubeMapObject->indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	//Set Output Merger, but no depth stencil
+	immediateContext->OMSetRenderTargets(1, &rtv, NULL);
+
+	//Draw the cube map object
+	immediateContext->DrawIndexed(cubeMap->cubeMapObject->getIndexCount(), 0, 0);
+}

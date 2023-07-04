@@ -67,7 +67,6 @@ private:
 	bool LoadMaterial(ID3D11Device* device, const std::string fileName);
 	bool LoadTexture(ID3D11Device* device, const std::vector<std::string> maps, ID3D11Texture2D*& texture, ID3D11ShaderResourceView*& textureSRV, const std::string mapType);
 
-	XMFLOAT3 getMiddlePoint() const;
 	void CreateBuffers(ID3D11Device* device);
 
 	void ClearPreviousObject();
@@ -87,6 +86,7 @@ public:
 
 	bool LoadObject(ID3D11Device* device, std::string fileName);
 
+	XMFLOAT3 getMiddlePoint() const;
 	int getIndexCount() const;
 	Submesh getSubmesh(int object) const;
 };

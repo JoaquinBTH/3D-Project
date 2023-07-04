@@ -141,11 +141,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	LODobject->LoadObject(renderer->device, "Models/TessellationPlane.obj");
 	LODHandler* LOD = new LODHandler(renderer->device, "Wall");
 
+	//Cube mapping
+	CubeMapHandler* cubeMap = new CubeMapHandler(renderer->device, WIDTH);
+
 	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
 	//Initialize the pipeline
-	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler, deferred, LOD))
+	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler, deferred, LOD, cubeMap))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
 		return -1;
@@ -193,7 +196,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else if (useCubeMap == true)
 		{
-			//renderer->CubeRender(vertexBuffer, currentLightConstBuff, matrixConstantBuffer, cubeConstantBuffer, cameraPosConstantBuffer, cubeVertexBuffer);
+			renderer->ShadowMap(object, lights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
+			renderer->CubeRender(object, cubeMap, vShader, pShader, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer);
 		}
 		else if (useLOD == true)
 		{
@@ -238,6 +242,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	delete LODobject;
 	delete deferred;
 	delete LOD;
+	delete cubeMap;
 
 	return 0;
 }

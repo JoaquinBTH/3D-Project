@@ -1,6 +1,6 @@
 #include "PipelineHelper.h"
 
-bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11VertexShader*& vShaderShadow, ID3D11PixelShader*& pShader, ID3D11PixelShader*& pShaderShadow, DeferredHandler*& deferred, LODHandler*& LOD, std::string& vShaderByteCode)
+bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11VertexShader*& vShaderShadow, ID3D11PixelShader*& pShader, ID3D11PixelShader*& pShaderShadow, DeferredHandler*& deferred, LODHandler*& LOD, CubeMapHandler*& cubeMap, std::string& vShaderByteCode)
 {
 	//vShader
 	std::string shaderData;
@@ -95,6 +95,29 @@ bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11Verte
 		return false;
 	}
 
+	//cubeVertexShader
+	shaderData.clear();
+	reader.close();
+	reader.open("../x64/Debug/CubeVertexShader.cso", std::ios::binary | std::ios::ate);
+	if (!reader.is_open())
+	{
+		std::cerr << "Could not open VS file!" << std::endl;
+		return false;
+	}
+
+	reader.seekg(0, std::ios::end);
+	shaderData.reserve(static_cast<unsigned int>(reader.tellg()));
+	reader.seekg(0, std::ios::beg);
+
+	shaderData.assign((std::istreambuf_iterator<char>(reader)),
+		std::istreambuf_iterator<char>());
+
+	if (FAILED(device->CreateVertexShader(shaderData.c_str(), shaderData.length(), nullptr, &cubeMap->cubeVertexShader)))
+	{
+		std::cerr << "Failed to create vertex shader!" << std::endl;
+		return false;
+	}
+
 	//pShader
 	shaderData.clear();
 	reader.close();
@@ -182,6 +205,29 @@ bool LoadShaders(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11Verte
 		std::istreambuf_iterator<char>());
 
 	if (FAILED(device->CreatePixelShader(shaderData.c_str(), shaderData.length(), nullptr, &LOD->LODpShader)))
+	{
+		std::cerr << "Failed to create pixel shader!" << std::endl;
+		return false;
+	}
+
+	//cubePixelShader
+	shaderData.clear();
+	reader.close();
+	reader.open("../x64/Debug/CubePixelShader.cso", std::ios::binary | std::ios::ate);
+	if (!reader.is_open())
+	{
+		std::cerr << "Could not open PS file!" << std::endl;
+		return false;
+	}
+
+	reader.seekg(0, std::ios::end);
+	shaderData.reserve(static_cast<unsigned int>(reader.tellg()));
+	reader.seekg(0, std::ios::beg);
+
+	shaderData.assign((std::istreambuf_iterator<char>(reader)),
+		std::istreambuf_iterator<char>());
+
+	if (FAILED(device->CreatePixelShader(shaderData.c_str(), shaderData.length(), nullptr, &cubeMap->cubePixelShader)))
 	{
 		std::cerr << "Failed to create pixel shader!" << std::endl;
 		return false;
@@ -308,10 +354,10 @@ bool CreateSamplerState(ID3D11Device* device, ID3D11SamplerState*& sampler)
 }
 
 bool SetupPipeline(ID3D11Device* device, ID3D11VertexShader*& vShader, ID3D11VertexShader*& vShaderShadow, ID3D11PixelShader*& pShader, ID3D11PixelShader*& pShaderShadow, 
-		ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler, DeferredHandler*& deferred, LODHandler*& LOD)
+		ID3D11InputLayout*& inputLayout, ID3D11Buffer*& matrixConstantBuffer, ID3D11SamplerState*& sampler, DeferredHandler*& deferred, LODHandler*& LOD, CubeMapHandler*& cubeMap)
 {
 	std::string vShaderByteCode;
-	if (!LoadShaders(device, vShader, vShaderShadow, pShader, pShaderShadow, deferred, LOD, vShaderByteCode))
+	if (!LoadShaders(device, vShader, vShaderShadow, pShader, pShaderShadow, deferred, LOD, cubeMap, vShaderByteCode))
 	{
 		std::cerr << "Error loading shaders!" << std::endl;
 		return false;
