@@ -356,3 +356,50 @@ void Render::CubeRender(ObjectHandler* object, CubeMapHandler* cubeMap, ID3D11Ve
 	//Draw the cube map object
 	immediateContext->DrawIndexed(cubeMap->cubeMapObject->getIndexCount(), 0, 0);
 }
+
+void Render::CullingRender(OctreeHandler* octree, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer)
+{
+	//Unbind everything that's necessary
+	this->ClearBindings();
+
+	//Clear backbuffer
+	float clearColour[4] = { 0, 0, 0, 0 };
+	immediateContext->ClearRenderTargetView(rtv, clearColour);
+	immediateContext->ClearDepthStencilView(dsView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+
+	//Input assembler
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	immediateContext->IASetVertexBuffers(0, 1, &octree->scene->vertexBuffer, &stride, &offset);
+	immediateContext->IASetIndexBuffer(octree->scene->indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	immediateContext->IASetInputLayout(inputLayout);
+	immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//Viewport
+	immediateContext->RSSetViewports(1, &viewport);
+
+	//Vertex Shader
+	immediateContext->VSSetShader(vShader, nullptr, 0);
+	immediateContext->VSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+
+	//Pixel Shader
+	immediateContext->PSSetShader(pShader, nullptr, 0);
+	immediateContext->PSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+	immediateContext->PSSetConstantBuffers(1, 1, &lights->numberOfLightsBuffer);
+	immediateContext->PSSetConstantBuffers(2, 1, &cameraPosConstantBuffer);
+	immediateContext->PSSetShaderResources(0, 1, &octree->scene->mapKaSRV);
+	immediateContext->PSSetShaderResources(1, 1, &octree->scene->mapKdSRV);
+	immediateContext->PSSetShaderResources(2, 1, &octree->scene->mapKsSRV);
+	immediateContext->PSSetShaderResources(3, 1, &lights->shadowMapSRV);
+	immediateContext->PSSetShaderResources(4, 1, &lights->lightSRV);
+	immediateContext->PSSetSamplers(0, 1, &sampler);
+
+	//Output Merger
+	immediateContext->OMSetRenderTargets(1, &rtv, dsView);
+
+	//Only draw the objects inside the view-frustum
+	for (int i = 0; i < octree->objectIndices.size(); i++)
+	{
+		immediateContext->DrawIndexed(octree->scene->getSubmesh(octree->objectIndices[i]).indexCount, octree->scene->getSubmesh(octree->objectIndices[i]).startIndex, 0);
+	}
+}

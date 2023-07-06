@@ -10,6 +10,8 @@ void StartImGuiFrame();
 
 void ImGuiExample(ID3D11ShaderResourceView* secretImageSRV, int secretImageWidth, int secretImageHeight);
 
+void ImGuiObjectsRendered(int amount);
+
 void ImGuiSelectRenderMethod(bool& useDeferred, bool& useCubeMap, bool& useLOD, bool& useCulling, bool& useParticle);
 
 void EndImGuiFrame();

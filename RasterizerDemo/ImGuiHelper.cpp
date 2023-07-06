@@ -72,6 +72,15 @@ void ImGuiExample(ID3D11ShaderResourceView* secretImageSRV, int secretImageWidth
 	ImGui::End();
 }
 
+void ImGuiObjectsRendered(int amount)
+{
+	bool begun = ImGui::Begin("Amount of Objects");
+
+	ImGui::Text("Objects Rendered: %d", amount);
+
+	ImGui::End();
+}
+
 void ImGuiSelectRenderMethod(bool& useDeferred, bool& useCubeMap, bool& useLOD, bool& useCulling, bool& useParticle)
 {
 	bool begun = ImGui::Begin("Render Method");

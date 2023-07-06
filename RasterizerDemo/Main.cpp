@@ -144,6 +144,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//Cube mapping
 	CubeMapHandler* cubeMap = new CubeMapHandler(renderer->device, WIDTH);
 
+	//Octree Culling
+	OctreeHandler* octree = new OctreeHandler(renderer->device, "Models/CullingScene.obj", XMFLOAT3(0.0f, 0.0f, 0.0f), 0, 100.0f); //Change depth from 0 to 3
+	LightHandler* octreeLights = new LightHandler();
+	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f));
+	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f));
+	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f));
+	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
+	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f));
+
+
+
 	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
@@ -206,7 +218,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else if (useCulling == true)
 		{
-			//renderer->CullingRender(matrixConstantBuffer, marked, frustumVertexBuffer, frustumSRV, frustumObjects);
+			octree->FrustumCulling(camera);
+			renderer->ShadowMap(octree->scene, octreeLights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
+			renderer->CullingRender(octree, vShader, pShader, sampler, octreeLights, matrixConstantBuffer, camera->cameraPosConstantBuffer);
+			ImGuiObjectsRendered((int)octree->objectIndices.size());
 		}
 		else if (useParticle == true)
 		{
@@ -243,6 +258,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	delete deferred;
 	delete LOD;
 	delete cubeMap;
+	delete octree;
+	delete octreeLights;
 
 	return 0;
 }

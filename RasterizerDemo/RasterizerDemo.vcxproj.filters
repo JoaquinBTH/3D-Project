@@ -39,7 +39,7 @@
     <ClCompile Include="Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Octree.cpp">
+    <ClCompile Include="OctreeHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render.cpp">
@@ -101,7 +101,7 @@
     <ClInclude Include="Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Octree.h">
+    <ClInclude Include="OctreeHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Render.h">

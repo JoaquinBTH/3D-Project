@@ -553,3 +553,18 @@ XMFLOAT3 ObjectHandler::getMiddlePoint() const
 
     return sumOfPositions;
 }
+
+std::vector<Vertex> ObjectHandler::getVertices() const
+{
+    return this->vertices;
+}
+
+std::vector<Object> ObjectHandler::getObjects() const
+{
+    return this->objects;
+}
+
+std::vector<unsigned int> ObjectHandler::getIndices() const
+{
+    return this->indices;
+}

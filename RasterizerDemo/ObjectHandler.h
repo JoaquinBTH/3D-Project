@@ -89,5 +89,8 @@ public:
 	XMFLOAT3 getMiddlePoint() const;
 	int getIndexCount() const;
 	Submesh getSubmesh(int object) const;
+	std::vector<Vertex> getVertices() const;
+	std::vector<Object> getObjects() const;
+	std::vector<unsigned int> getIndices() const;
 };
 

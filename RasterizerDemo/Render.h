@@ -4,6 +4,7 @@
 #include "DeferredHandler.h"
 #include "LODHandler.h"
 #include "CubeMapHandler.h"
+#include "OctreeHandler.h"
 #pragma once
 class Render
 {
@@ -29,9 +30,7 @@ public:
 	void DeferredRender(ObjectHandler* object, DeferredHandler* deferred, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer);
 	void LODRender(ObjectHandler* object, LODHandler* LOD, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer);
 	void CubeRender(ObjectHandler* object, CubeMapHandler* cubeMap, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer);
-	//void CubeRender(ID3D11Buffer* vertexBuffer, ID3D11Buffer* currentLightConstBuff[4], ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cubeConstBuffer[6], ID3D11Buffer* cameraPosConstantBuffer, ID3D11Buffer* cubeVertexBuffer);
-	//void CullingRender(ID3D11Buffer* matrixConstantBuffer, std::vector<int> marked, ID3D11Buffer* frustumVertexBuffer[50], ID3D11ShaderResourceView* frustumSRV[50], std::vector<Parser*>& frustumObjects);
-	//void LODRender(ID3D11Buffer* vertexBuffer, ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer);
+	void CullingRender(OctreeHandler* octree, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer);
 	//void ParticleRender(ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer);
 };
 

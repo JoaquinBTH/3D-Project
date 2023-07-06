@@ -162,7 +162,7 @@
     <ClCompile Include="LODHandler.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="ObjectHandler.cpp" />
-    <ClCompile Include="Octree.cpp" />
+    <ClCompile Include="OctreeHandler.cpp" />
     <ClCompile Include="PipelineHelper.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Timer.cpp" />
@@ -185,7 +185,7 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="LODHandler.h" />
     <ClInclude Include="ObjectHandler.h" />
-    <ClInclude Include="Octree.h" />
+    <ClInclude Include="OctreeHandler.h" />
     <ClInclude Include="PipelineHelper.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="stb_image.h" />
