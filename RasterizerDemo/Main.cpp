@@ -154,13 +154,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
 	octreeLights->AddLight(renderer->device, 1, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f));
 
-
+	//Particles
+	ParticleHandler* particles = new ParticleHandler(renderer->device, 867); //255 particles for first pattern, then add 204 per extention (51 particles per pyramid)
 
 	//Set up ImGui
 	SetupImGui(window, renderer->device, renderer->immediateContext);
 
 	//Initialize the pipeline
-	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler, deferred, LOD, cubeMap))
+	if (!SetupPipeline(renderer->device, vShader, vShaderShadow, pShader, pShaderShadow, renderer->inputLayout, matrixConstantBuffer, sampler, deferred, LOD, cubeMap, particles))
 	{
 		std::cerr << "Failed to setup pipeline!" << std::endl;
 		return -1;
@@ -225,7 +226,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else if (useParticle == true)
 		{
-			//renderer->ParticleRender(matrixConstantBuffer, cameraPosConstantBuffer);
+			renderer->ParticleRender(particles, sampler, matrixConstantBuffer, camera->cameraPosConstantBuffer);
 		}
 		else
 		{
@@ -260,6 +261,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	delete cubeMap;
 	delete octree;
 	delete octreeLights;
+	delete particles;
 
 	return 0;
 }

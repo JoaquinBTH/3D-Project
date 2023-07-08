@@ -5,6 +5,7 @@
 #include "LODHandler.h"
 #include "CubeMapHandler.h"
 #include "OctreeHandler.h"
+#include "ParticleHandler.h"
 #pragma once
 class Render
 {
@@ -31,6 +32,6 @@ public:
 	void LODRender(ObjectHandler* object, LODHandler* LOD, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer);
 	void CubeRender(ObjectHandler* object, CubeMapHandler* cubeMap, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer);
 	void CullingRender(OctreeHandler* octree, ID3D11VertexShader* vShader, ID3D11PixelShader* pShader, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer);
-	//void ParticleRender(ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer);
+	void ParticleRender(ParticleHandler* particles, ID3D11SamplerState* sampler, ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer);
 };
 

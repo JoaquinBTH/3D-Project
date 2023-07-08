@@ -403,3 +403,57 @@ void Render::CullingRender(OctreeHandler* octree, ID3D11VertexShader* vShader, I
 		immediateContext->DrawIndexed(octree->scene->getSubmesh(octree->objectIndices[i]).indexCount, octree->scene->getSubmesh(octree->objectIndices[i]).startIndex, 0);
 	}
 }
+
+void Render::ParticleRender(ParticleHandler* particles, ID3D11SamplerState* sampler, ID3D11Buffer* matrixConstantBuffer, ID3D11Buffer* cameraPosConstantBuffer)
+{
+	//Unbind everything that's necessary
+	this->ClearBindings();
+
+	//Clear backbuffer
+	float clearColour[4] = { 0, 0, 0, 0 };
+	immediateContext->ClearRenderTargetView(rtv, clearColour);
+	immediateContext->ClearDepthStencilView(dsView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
+
+	//Input assembler
+	immediateContext->IASetInputLayout(particles->particleInputLayout);
+	immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	
+	//Viewport
+	immediateContext->RSSetViewports(1, &viewport);
+
+	//Compute shader to update each particle
+	immediateContext->CSSetShader(particles->particleComputeShader, nullptr, 0);
+	immediateContext->CSSetUnorderedAccessViews(0, 1, &particles->particleStructuredUAV, 0);
+	immediateContext->Dispatch(UINT(particles->particles.size()), 1, 1);
+
+	//Unbind Compute shader and UAV
+	ID3D11ComputeShader* nullCS = nullptr;
+	ID3D11UnorderedAccessView* nullUAV = nullptr;
+	immediateContext->CSSetShader(nullCS, nullptr, 0);
+	immediateContext->CSSetUnorderedAccessViews(0, 1, &nullUAV, 0);
+
+	//Vertex Shader
+	immediateContext->VSSetShader(particles->particleVertexShader, nullptr, 0);
+	immediateContext->VSSetShaderResources(0, 1, &particles->particleStructuredSRV);
+	immediateContext->VSSetConstantBuffers(0, 1, &matrixConstantBuffer);
+
+	//Geometry Shader
+	immediateContext->GSSetShader(particles->particleGeometryShader, nullptr, 0);
+	immediateContext->GSSetConstantBuffers(0, 1, &cameraPosConstantBuffer);
+	immediateContext->GSSetConstantBuffers(1, 1, &matrixConstantBuffer);
+
+	//Pixel Shader
+	immediateContext->PSSetShader(particles->particlePixelShader, nullptr, 0);
+	immediateContext->PSSetSamplers(0, 1, &sampler);
+	immediateContext->PSSetShaderResources(0, 1, &particles->particleSRV);
+
+	//Output Merger
+	immediateContext->OMSetRenderTargets(1, &rtv, dsView);
+
+	//Draw
+	immediateContext->Draw(UINT(particles->particles.size()), 0);
+
+	//Unbind Geometry Shader
+	ID3D11GeometryShader* nullGS = nullptr;
+	immediateContext->GSSetShader(nullGS, nullptr, 0);
+}
