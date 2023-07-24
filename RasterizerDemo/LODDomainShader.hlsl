@@ -73,7 +73,7 @@ DS_OUTPUT main(
 
 	//Displace the position based on the normal
 	float displacementAmount = (heightMap.SampleLevel(usedSampler, Output.uv, 0).r * 2.0f - 1.0f); //Height
-	Output.position.xyz += Output.normal * (displacementAmount * 0.5f);
+	Output.position.xyz += baseNormal * (displacementAmount * 0.5f);
 
 	//Transform the displaced position into clip space
 	Output.position = mul(world, Output.position);
