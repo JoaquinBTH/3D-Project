@@ -138,7 +138,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	//Level of detail tessellation and Object
 	ObjectHandler* LODobject = new ObjectHandler();
-	LODobject->LoadObject(renderer->device, "Models/TessellationSphere.obj");
+	LODobject->LoadObject(renderer->device, "Models/TessellationPlane.obj");
 	LODHandler* LOD = new LODHandler(renderer->device, "Wall");
 
 	//Cube mapping
