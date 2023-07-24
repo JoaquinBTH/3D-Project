@@ -36,7 +36,8 @@ void main(
 	float3 upVec = float3(0.0f, 0.25f, 0.0f); //Half-height of quad
 
 	//Create the positions of each vertice in the quad
-	float4 pos[4] = { float4((input[0].xyz - rightVec + upVec), input[0].w), float4((input[0].xyz + rightVec + upVec), input[0].w), float4((input[0].xyz - rightVec - upVec), input[0].w), float4((input[0].xyz + rightVec - upVec), input[0].w)};
+	float4 pos[4] = { float4((input[0].xyz - rightVec + upVec), input[0].w), float4((input[0].xyz + rightVec + upVec), input[0].w), 
+						float4((input[0].xyz - rightVec - upVec), input[0].w), float4((input[0].xyz + rightVec - upVec), input[0].w)};
 
 	GSOutput element;
 

@@ -119,6 +119,10 @@ void Render::StandardRender(ObjectHandler* object, ID3D11VertexShader* vShader, 
 
 	//Draw
 	immediateContext->DrawIndexed(object->getIndexCount(), 0, 0);
+
+	//Draw submesh
+	//int index = 1; //Select index of submesh to draw
+	//immediateContext->DrawIndexed(object->getSubmesh(index).indexCount, object->getSubmesh(index).startIndex, 0);
 }
 
 void Render::DeferredRender(ObjectHandler* object, DeferredHandler* deferred, ID3D11Buffer* matrixConstantBuffer, ID3D11SamplerState* sampler, LightHandler* lights, ID3D11Buffer* cameraPosConstantBuffer)

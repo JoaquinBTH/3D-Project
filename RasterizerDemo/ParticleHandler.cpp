@@ -53,6 +53,7 @@ ParticleHandler::ParticleHandler(ID3D11Device* device, const int nrOfParticles, 
     XMFLOAT3 offset = XMFLOAT3(0.0f, 0.0f, 0.0f);
     int moveDirection = 0;
     int repeats = 1;
+    //Applies a pattern to the particles for fun
     for (int i = 0; i < nrOfParticles; i++)
     {
         XMFLOAT3 particlePos = XMFLOAT3(startingPos.x + offset.x, startingPos.y + offset.y, startingPos.z + offset.z);

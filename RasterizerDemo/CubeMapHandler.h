@@ -36,7 +36,7 @@ public:
 	ID3D11RenderTargetView* cubeRTV[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr }; //Render to each side of the cube
 	ID3D11ShaderResourceView* cubeSRV = nullptr; //TextureCube SRV
 	ID3D11Buffer* cubeConstBuff[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr }; //View and projection matrices for each face of the cube
-	D3D11_VIEWPORT cubeport = {};
+	D3D11_VIEWPORT cubeport = {}; //New viewport because the texture that the cubemap samples from has to be 1:1 aspect ratio instead of 2:1 which is the window's aspect ratio
 
 	ID3D11VertexShader* cubeVertexShader = nullptr; //BasicVertexShader but with constant buffer for the cubeConstBuff (Uses BasicPixelShader and apply cubeRTV as the RTV instead of swapchain)
 	ID3D11PixelShader* cubePixelShader = nullptr; //Takes a TextureCube as its texture and outputs the reflection on the surface of the cube mapped object to the swapchain (Used in combination with BasicVertexShader)
