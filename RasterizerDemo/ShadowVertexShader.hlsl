@@ -37,7 +37,6 @@ VertexShaderOutput main(VertexShaderInput input)
 	VertexShaderOutput output;
 	output.position = mul(world, float4(input.position, 1.0f));
 	output.position = mul(lightViewAndProjectionMatrix, output.position);
-	//output.position = mul(lightViewAndProjectionMatrix, float4(input.position, 1.0f));
 
 	return output;
 }

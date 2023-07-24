@@ -99,12 +99,7 @@ PixelShaderOutput main(PixelShaderInput input)
 			if (isWithinSpotlight)
 			{
 				spotlightAttenuation = 1.0f;
-				float3 diffuseLight = saturate(dot(surfaceNormal, light.direction)) * light.diffuse.rgb; //Diffuse light component
-				if (length(diffuseLight) == 0.0f)
-				{
-					diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb;
-				}
-
+				float3 diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb; //Diffuse light component
 				float3 lightReflect = reflect(-lightDirection, surfaceNormal); //Direction of the reflected light 
 				float specularIntensity = pow(saturate(dot(lightReflect, viewDirection)), input.ns); //Intensity of the specular light
 				float3 specularLight = specularIntensity * light.specular.rgb; //Specular light component
@@ -125,19 +120,10 @@ PixelShaderOutput main(PixelShaderInput input)
 		else if (light.isDirectional)
 		{
 			float3 lightDirection = normalize(-light.direction); //Because the light is so far away the direction from the surface to the light is just the inverse of the light's direction
-			float facingLight = dot(surfaceNormal, light.direction); //Check if the surfaceNormal is facing the light or not
-			if (facingLight < 0.0f)
-			{
-				facingLight = dot(surfaceNormal, lightDirection);
-			}
+			float facingLight = dot(surfaceNormal, lightDirection); //Check if the surfaceNormal is facing the light or not
 			if (facingLight > 0.0f)
 			{
-				float3 diffuseLight = saturate(dot(surfaceNormal, light.direction)) * light.diffuse.rgb; //Diffuse light component
-				if (length(diffuseLight) == 0.0f)
-				{
-					diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb;
-				}
-
+				float3 diffuseLight = saturate(dot(surfaceNormal, lightDirection)) * light.diffuse.rgb; //Diffuse light component
 				float3 lightReflect = reflect(-lightDirection, surfaceNormal); //Direction of the reflected light
 				float specularIntensity = pow(saturate(dot(lightReflect, viewDirection)), input.ns); //Intensity of the specular light
 				float3 specularLight = specularIntensity * light.specular.rgb; //Specular light component

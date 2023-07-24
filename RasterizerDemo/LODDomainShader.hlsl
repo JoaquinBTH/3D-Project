@@ -52,44 +52,44 @@ DS_OUTPUT main(
 	Output.ns = patch[0].ns;
 	Output.usedtexture = patch[0].usedtexture;
 	
-	//Apply displacement based on heightMap and normalMap
+	float3 baseNormal = Output.normal;
 
-	//Get the height from the heightMap
-	float height = (heightMap.SampleLevel(usedSampler, Output.uv, 0).r * 2.0f - 1.0f) / 0.5f;
+	//Apply displacement based on heightMap and normal mapping based on normalMap
 
-	//Calculate the normal and displace the position based on that normal
-	Output.normal = normalize(mul(world, float4(Output.normal, 0.0f)).xyz);
-	float3 displacedPosition = Output.position.xyz + Output.normal * (height * 0.5f);
-	Output.position = float4(displacedPosition, 1.0f);
+	//Calculate the tangent and bitangent
+	float3 edge1 = patch[1].position.xyz - patch[0].position.xyz;
+	float3 edge2 = patch[2].position.xyz - patch[0].position.xyz;
+	float2 deltaUV1 = patch[1].uv - patch[0].uv;
+	float2 deltaUV2 = patch[2].uv - patch[0].uv;
+
+	float det = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+	float3 tangent = normalize((deltaUV2.y * edge1 - deltaUV1.y * edge2) * det);
+	float3 bitangent = normalize((-deltaUV2.x * edge1 + deltaUV1.x * edge2) * det);
+
+	//Create the TBN matrix and get the new normal
+	float3 normalMapSample = normalMap.SampleLevel(usedSampler, Output.uv, 0).xyz * 2.0f - 1.0f; //Convert to [-1, 1] range
+	float3x3 TBN = float3x3(tangent, bitangent, Output.normal);
+	Output.normal = normalize(mul(normalMapSample, TBN));
+
+	//Displace the position based on the normal
+	float displacementAmount = (heightMap.SampleLevel(usedSampler, Output.uv, 0).r * 2.0f - 1.0f); //Height
+	Output.position.xyz += Output.normal * (displacementAmount * 0.5f);
 
 	//Transform the displaced position into clip space
 	Output.position = mul(world, Output.position);
 	Output.worldPosition = Output.position;
 	Output.position = mul(viewAndProjection, Output.position);
 
-	//Calculate the tangent and bitangent using the edge positions and UV coordinates of the patches.
-	float3 edge1 = patch[1].position.xyz - patch[0].position.xyz;
-	float3 edge2 = patch[2].position.xyz - patch[0].position.xyz;
-	float2 deltaUV1 = patch[1].uv - patch[0].uv;
-	float2 deltaUV2 = patch[2].uv - patch[0].uv;
-
-	//Determinant of the UV coordinate differences.
-	float det = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
-
-	float3 tangent = (deltaUV2.y * edge1 - deltaUV1.y * edge2) / det;
-	float3 bitangent = (deltaUV1.x * edge2 - deltaUV2.x * edge1) / det;
-
-	//Construct the tangent-bitangent-normal matrix
-	float3x3 TBN = float3x3(tangent, bitangent, Output.normal);
-
-	//Sample the normal map with in the ranges of -1 to 1 and get the worldSpaceNormal after displacement is done
-	float3 tangentSpaceNormal = normalMap.SampleLevel(usedSampler, Output.uv, 0).xyz * 2.0f - 1.0f;
-	float3 worldSpaceNormal = normalize(mul(TBN, tangentSpaceNormal));
-
-	//If there is tessellation, then we change the normal. Otherwise just pass along the current normal.
-	if (input.InsideTessFactor != 1.0f)
+	//Check if any tessllation is currently applied to the object
+	if (input.InsideTessFactor == 1.0f)
 	{
-		Output.normal = worldSpaceNormal;
+		//Base normal
+		Output.normal = mul(world, float4(baseNormal, 1.0f)).xyz;
+	}
+	else
+	{
+		//Normal mapped
+		Output.normal = mul(world, float4(Output.normal, 1.0f)).xyz;
 	}
 
 	return Output;
