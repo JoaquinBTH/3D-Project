@@ -23,7 +23,7 @@ private:
 
 	struct NumberOfLights
 	{
-		int nrOfLights;
+		int nrOfLights = 0;
 		XMFLOAT3 padding = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	};
 

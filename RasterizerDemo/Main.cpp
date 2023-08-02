@@ -143,6 +143,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	//Cube mapping
 	CubeMapHandler* cubeMap = new CubeMapHandler(renderer->device, WIDTH);
+	float distanceMoved = 0.0f;
+	bool reverse = false;
 
 	//Octree Culling
 	OctreeHandler* octree = new OctreeHandler(renderer->device, "Models/CullingScene.obj", XMFLOAT3(0.0f, 0.0f, 0.0f), 3, 100.0f); //Change depth from 0 to 3
@@ -209,6 +211,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		}
 		else if (useCubeMap == true)
 		{
+			//Move submesh up and down
+			float distance = dt * 0.005f;
+			distanceMoved += distance;
+			if (reverse) distance = -distance;
+			object->MoveSubmesh(renderer->device, distance, 6);
+			if (distanceMoved > 4.0f)
+			{
+				distanceMoved = 0;
+				if (reverse)
+				{
+					reverse = false;
+				}
+				else
+				{
+					reverse = true;
+				}
+			}
+
 			renderer->ShadowMap(object, lights, vShaderShadow, pShaderShadow, matrixConstantBuffer);
 			renderer->CubeRender(object, cubeMap, vShader, pShader, matrixConstantBuffer, sampler, lights, camera->cameraPosConstantBuffer);
 		}

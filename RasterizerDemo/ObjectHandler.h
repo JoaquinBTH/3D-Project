@@ -46,7 +46,7 @@ struct Submesh
 struct Object
 {
 	std::string name;
-	Submesh submesh;
+	Submesh submesh = {0, 0};
 };
 
 struct MiddlePoint
@@ -87,6 +87,7 @@ public:
 	bool LoadObject(ID3D11Device* device, std::string fileName);
 
 	XMFLOAT3 getMiddlePoint() const;
+	void MoveSubmesh(ID3D11Device* device, float amount, int index = 0);
 	int getIndexCount() const;
 	Submesh getSubmesh(int object) const;
 	std::vector<Vertex> getVertices() const;

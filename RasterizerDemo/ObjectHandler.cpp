@@ -568,3 +568,46 @@ std::vector<unsigned int> ObjectHandler::getIndices() const
 {
     return this->indices;
 }
+
+void ObjectHandler::MoveSubmesh(ID3D11Device* device, float amount, int index)
+{
+    std::vector<unsigned int> indicesAltered;
+    //Move the entire submesh
+    for (int i = this->objects[index].submesh.startIndex; i < (this->objects[index].submesh.startIndex + this->objects[index].submesh.indexCount); i++)
+    {
+        bool alter = true;
+        for (int j = 0; j < indicesAltered.size(); j++)
+        {
+            if (this->indices[i] == indicesAltered[j])
+            {
+                alter = false;
+                break;
+            }
+        }
+
+        if (alter)
+        {
+            this->vertices[this->indices[i]].pos[1] += amount;
+            indicesAltered.push_back(this->indices[i]);
+        }
+    }
+
+    //Delete existing vertex buffer
+    if (vertexBuffer) vertexBuffer->Release();
+
+    //Create new vertex buffer
+    D3D11_BUFFER_DESC vertexBufferDesc{};
+    vertexBufferDesc.ByteWidth = (UINT)(sizeof(Vertex) * vertices.size());
+    vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+    vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    vertexBufferDesc.CPUAccessFlags = 0;
+    vertexBufferDesc.MiscFlags = 0;
+    vertexBufferDesc.StructureByteStride = 0;
+
+    D3D11_SUBRESOURCE_DATA vertexData{};
+    vertexData.pSysMem = vertices.data();
+    vertexData.SysMemPitch = 0;
+    vertexData.SysMemSlicePitch = 0;
+
+    device->CreateBuffer(&vertexBufferDesc, &vertexData, &this->vertexBuffer);
+}
